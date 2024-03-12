@@ -12,7 +12,7 @@ st.set_page_config(page_title='Конкурентный обзор | Nikoliers',
 st.markdown('<style>div.block-container{padding-top:1rem;}</style>',unsafe_allow_html=True)
 
 
-df = pd.read_pickle('final2024spb.gz')
+df = pd.read_pickle('realty_sold_06032024_SPB_LO.gz')
 
 
 df = df[(df['Купил лотов в ЖК'].isin(np.arange(1,6))) & (df['Покупатель ЮЛ'].isna())] # лотов [1;5] + ЮЛ - NaN
