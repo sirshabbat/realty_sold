@@ -314,7 +314,7 @@ if option == 'Конкурентный обзор' and (len(proj) * len(apart_ty
     st.markdown("---")
     st.markdown("&nbsp;")
 
-    for project in proj_new:
+    for project in proj:
 
         st.markdown(f'<h4> 🏢 {project}</h4>', unsafe_allow_html=True)
         col1, col2 = st.columns(2)
