@@ -5,9 +5,20 @@ import base64
 
 
 
-st.set_page_config(page_title='Конкурентный обзор | Nikoliers',
-                  page_icon='https://avatars.mds.yandex.net/i?id=233e28dbe6207c0ebb949d52a012aa95_sr-9229932-images-thumbs&n=13',
+st.set_page_config(page_title='Конкурентный обзор · Nikoliers',
+                  page_icon='https://nikoliers.ru/favicon.ico',
                   layout='wide')
+
+st.markdown(
+    """
+    <style>
+    body {
+        zoom: 80%;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 st.markdown('<style>div.block-container{padding-top:1rem;}</style>',unsafe_allow_html=True)
 
@@ -49,7 +60,7 @@ dummy_df.loc['Итог по месяцам'] = ['']
 
 
 
-st.title("Конкурентный обзор | Nikoliers")
+st.title("Nikoliers · Конкурентный обзор | Экспозиция")
 
 st.markdown("&nbsp;")
 
@@ -67,7 +78,7 @@ st.markdown("&nbsp;")
 
 
 # ПОЛЗУНКИ
-st.sidebar.image('logo.png', width=155)
+st.sidebar.image('https://nikoliers.ru/assets/img/nikoliers_logo.png', width=230)
 
 st.sidebar.markdown("&nbsp;")
 
@@ -95,16 +106,19 @@ check = st.sidebar.checkbox("Экспозиция")
 
 
 # ВЫДЕЛЕНИЕ ПОСЛЕДНЕЙ СТРОКИ
+@st.cache_data
 def highlight_last_row(s):
     return ['background-color: #B1E2C0' if i == (len(s) - 1) else '' for i in range(len(s))]
 
 
 # ВЫДЕЛЕНИЕ ПОСЛЕДНЕЙ СТРОКИ + СТОЛБЦА
+@st.cache_data
 def highlight_last_row_and_column(s):
     return ['background-color: #B1E2C0' if (i == (len(s) - 1) or s.name == 'Общий итог') else '' for i in range(len(s))]
 
 
 # ДДУ ГОТОВО
+@st.cache_data
 def get_ddu(name, ap_types):
     project_ddu = df[(df['ЖК_рус'] == name) &
                      (df['Дата регистрации'] >= time_min) &
@@ -130,6 +144,7 @@ def get_ddu(name, ap_types):
 
 
 # Средняя стоимость м2, тыс руб. ГОТОВО
+@st.cache_data
 def get_mean_m2(name, ap_types):
     project_mean_m2_price = df[(df['ЖК_рус'] == name) &
                                (df['Дата регистрации'] >= time_min) &
@@ -168,6 +183,7 @@ def get_mean_m2(name, ap_types):
 
 
 # Средняя площадь, м2 ГОТОВО
+@st.cache_data
 def get_mean_square(name, ap_types):
     project_mean_square = df[(df['ЖК_рус'] == name) &
                              (df['Дата регистрации'] >= time_min) &
@@ -188,7 +204,7 @@ def get_mean_square(name, ap_types):
         #return st.write('<h6>Невозможно составить таблицу с заданными фильтрами</h6>', unsafe_allow_html=True)
     else:
         project_mean_square.loc['Итог по месяцам'] = [df_filtered[df_filtered['Дата регистрации'].dt.month == month]['Площадь'].mean() for month in sorted(df_filtered['Дата регистрации'].dt.month.unique())]
-        project_mean_square['Общий итог'] = [df_filtered[df_filtered['Тип Комнатности'] == apart]['Площадь'].mean() for apart in sorted(df_filtered['Тип Комнатности'].unique())] + [df_filtered['Площадь'].mean()]
+        project_mean_square['Общий итог'] = [df_filtered[df_filtered['Тип Комнатности'] == apart]['Площадь'].mean() for apart in sorted(df_filtered['Тип Комнатности'].dropna().unique())] + [df_filtered['Площадь'].mean()]
 
         project_mean_square.fillna(0, inplace=True)
         project_mean_square.rename(columns=month_map, inplace=True)
@@ -197,6 +213,7 @@ def get_mean_square(name, ap_types):
 
 
 # Средняя стоимость лота, млн руб. ГОТОВО
+@st.cache_data
 def get_mean_lot(name, ap_types):
     project_mean_lot = df[(df['ЖК_рус'] == name) &
                           (df['Дата регистрации'] >= time_min) &
@@ -218,7 +235,7 @@ def get_mean_lot(name, ap_types):
     else:
 
         project_mean_lot.loc['Итог по месяцам'] = [df_filtered[df_filtered['Дата регистрации'].dt.month == month]['Оценка цены'].mean() for month in sorted(df_filtered['Дата регистрации'].dt.month.unique())]
-        project_mean_lot['Общий итог'] = [df_filtered[df_filtered['Тип Комнатности'] == apart]['Оценка цены'].mean() for apart in sorted(df_filtered['Тип Комнатности'].unique())] + [df_filtered['Оценка цены'].mean()]
+        project_mean_lot['Общий итог'] = [df_filtered[df_filtered['Тип Комнатности'] == apart]['Оценка цены'].mean() for apart in sorted(df_filtered['Тип Комнатности'].dropna().unique())] + [df_filtered['Оценка цены'].mean()]
 
         project_mean_lot.fillna(0, inplace=True)
         project_mean_lot = project_mean_lot / 10 ** 6
@@ -229,6 +246,7 @@ def get_mean_lot(name, ap_types):
 
 
 # Итоговая таблица ГОТОВО
+@st.cache_data
 def get_main(ap_types):
     main_df = pd.DataFrame(columns=['Название проекта',
                                     'Количество зарегистрированных ДДУ, шт.',
@@ -243,10 +261,15 @@ def get_main(ap_types):
     main_df['Средняя стоимость одного лота, млн руб.'] = [get_mean_lot(name, apart_type)['Общий итог'].loc['Итог по месяцам'] for name in proj]
     main_df = main_df.set_index('Название проекта').replace('', '0').astype(float).round(1)
 
+    df_filtered = df[(df['ЖК_рус'].isin(proj)) &
+                     (df['Тип помещения'].isin(ap_types)) &
+                     (df['Дата регистрации'] >= time_min) &
+                     (df['Дата регистрации'] <= time_max)]
+
     main_df.loc['Итоговые значения'] = [main_df['Количество зарегистрированных ДДУ, шт.'].sum(),  # итоговое количество ДДУ
-                      df[(df['ЖК_рус'].isin(proj)) & (df['Дата регистрации'] >= time_min) & (df['Дата регистрации'] <= time_max) & (df['Тип помещения'].isin(ap_types))]['Площадь'].mean(),  # итоговая средняя площадь
-                      df[(df['ЖК_рус'].isin(proj)) & (df['Дата регистрации'] >= time_min) & (df['Дата регистрации'] <= time_max) & (df['Тип помещения'].isin(ap_types))]['Оценка цены'].sum() / df[(df['ЖК_рус'].isin(proj)) & (df['Дата регистрации'] >= time_min) & (df['Дата регистрации'] <= time_max) & (df['Тип помещения'].isin(ap_types))]['Площадь'].sum() / 1000,  # итоговая сред. стоимость м2
-                      df[(df['ЖК_рус'].isin(proj)) & (df['Дата регистрации'] >= time_min) & (df['Дата регистрации'] <= time_max) & (df['Тип помещения'].isin(ap_types))]['Оценка цены'].mean() / 10**6]  # итоговая средняя цена лота
+                      df_filtered[df_filtered['Тип Комнатности'].notna()]['Площадь'].mean(),  # итоговая средняя площадь
+                      df_filtered[df_filtered['Тип Комнатности'].notna()]['Оценка цены'].sum() / df_filtered[df_filtered['Тип Комнатности'].notna()]['Площадь'].sum() / 1000,  # итоговая сред. стоимость м2
+                      df_filtered[df_filtered['Тип Комнатности'].notna()]['Оценка цены'].mean() / 10**6]  # итоговая средняя цена лота
     main_df['Количество зарегистрированных ДДУ, шт.'] = main_df['Количество зарегистрированных ДДУ, шт.'].apply(int)
     main_df['Средняя стоимость м², тыс. руб.'] = main_df['Средняя стоимость м², тыс. руб.'].apply(round)
 
@@ -396,11 +419,19 @@ elif check == True:
 
     st.markdown("&nbsp;")
 
-    csv = final_exp.to_csv(index=True)
-    b64 = base64.b64encode(csv.encode()).decode()
-    href = f'<a href="data:file/csv;base64,{b64}" download="Экспозиция{str(time_min)[:-9]}-{str(time_max)[:-9]}.csv">Скачать таблицу с экспозицией в формате .csv</a>'
-    st.markdown(href, unsafe_allow_html=True)
+    #csv = final_exp.to_csv(index=True)
+    #b64 = base64.b64encode(csv.encode()).decode()
+    #href = f'<a href="data:file/csv;base64,{b64}" download="Экспозиция{str(time_min)[:-9]}-{str(time_max)[:-9]}.csv">Скачать таблицу с экспозицией в формате .csv</a>'
+    #st.markdown(href, unsafe_allow_html=True)
 
+    def download_dataframe_xlsx(x):
+        with st.spinner('Загрузка файла...'):
+            x.to_excel(f"Экспозиция с {str(time_min)[:-9][-2:]}-{str(time_min)[:-9][-5:-3]}-{str(time_min)[:-9][-10:-6]} по {str(time_max)[:-9][-2:]}-{str(time_max)[:-9][-5:-3]}-{str(time_max)[:-9][-10:-6]}.xlsx", index=False)
+        st.success('Файл успешно скачан')
+
+
+    if st.button('Загрузить экспозицию в формате .xlsx'):
+        download_dataframe_xlsx(final_exp)
 
 
 
