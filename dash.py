@@ -38,12 +38,15 @@ df['Цена_м2'] = df['Оценка цены'] / df['Площадь']
 # NEW HISTORY
 df1 = pd.read_pickle('new_history_04032024_SPB_LO.gz')
 df1 = df1.rename(columns={"ЖК рус": "ЖК_рус"}) # переименуем, чтобы streamlit не ругался
+df1['Дата актуализации'] = pd.to_datetime(df1['Дата актуализации'])
 
 
 
 
 
 projects = sorted(df['ЖК_рус'].unique())
+
+projects_new = sorted(df1['ЖК_рус'].unique())
 
 
 
@@ -85,23 +88,6 @@ with col2:
                                             value=pd.to_datetime('2023-12-31 00:00:00')))
 
 st.markdown("&nbsp;")
-
-
-# ПОЛЗУНКИ
-st.sidebar.image('https://nikoliers.ru/assets/img/nikoliers_logo.png', width=230)
-
-st.sidebar.markdown("&nbsp;")
-
-proj = st.sidebar.multiselect('**Выберите проект**:',
-                              options=projects)
-#st.sidebar.markdown("&nbsp;")
-
-apart_type = st.sidebar.multiselect('**Выберите тип помещения**:',
-                                    options=df[df['ЖК_рус'].isin(proj)]['Тип помещения'].unique())
-
-st.sidebar.markdown("&nbsp;")
-
-option = st.sidebar.radio('**Выберите опцию**:', ('Конкурентный обзор', 'Экспозиция'), index=None)
 
 
 
@@ -286,14 +272,49 @@ def download_dataframe_xlsx(x):
 
 
 
-if (len(proj) * len(apart_type) != 0) and (option == 'Конкурентный обзор'):
+
+# ПОЛЗУНКИ
+st.sidebar.image('https://nikoliers.ru/assets/img/nikoliers_logo.png', width=230)
+
+st.sidebar.markdown("&nbsp;")
+
+option = st.sidebar.radio('**Выберите опцию**:', ('Конкурентный обзор', 'Экспозиция'), index=None)
+
+st.sidebar.markdown("&nbsp;")
+
+
+if option == 'Конкурентный обзор':
+    proj = st.sidebar.multiselect('**Выберите проект**:',
+                                  options=projects)
+    apart_type = st.sidebar.multiselect('**Выберите тип помещения**:',
+                                        options=df[df['ЖК_рус'].isin(proj)]['Тип помещения'].unique())
+
+if option == 'Экспозиция':
+    proj_new = st.sidebar.multiselect('**Выберите проект**:',
+                                      options=projects_new)
+    apart_type_new = st.sidebar.multiselect('**Выберите тип помещения**:',
+                                            options=df1[df1['ЖК_рус'].isin(proj_new)]['Тип помещения'].unique())
+
+
+#st.sidebar.markdown("&nbsp;")
+
+
+
+
+
+
+
+
+
+
+if option == 'Конкурентный обзор' and (len(proj) * len(apart_type) != 0):
     st.write('<h4> Итоговая таблица по проектам:</h4>', unsafe_allow_html=True)
     st.write(get_main(apart_type).style.format(precision=1).apply(highlight_last_row))
     st.markdown("&nbsp;")
     st.markdown("---")
     st.markdown("&nbsp;")
 
-    for project in proj:
+    for project in proj_new:
 
         st.markdown(f'<h4> 🏢 {project}</h4>', unsafe_allow_html=True)
         col1, col2 = st.columns(2)
@@ -314,31 +335,31 @@ if (len(proj) * len(apart_type) != 0) and (option == 'Конкурентный �
         st.markdown("&nbsp;")
         st.markdown('---')
         st.markdown("&nbsp;")
-elif option == 'Экспозиция':
+elif option == 'Экспозиция' and (len(proj_new) * len(apart_type_new) != 0):
     result = []
     final_list = []
     # final_proj = []
     original_list = []
 
-    df_filtered = df[(df['Тип помещения'].isin(apart_type)) &
-                     (df['Дата регистрации'] >= time_min) &
-                     (df['Дата регистрации'] <= time_max)]
+    df_filtered = df1[(df1['Тип помещения'].isin(proj_new)) &
+                      (df1['Дата актуализации'] >= time_min) &
+                      (df1['Дата актуализации'] <= time_max)]
 
     dummy_exp_df = pd.DataFrame()
-    dummy_exp_df['Тип Комнатности'] = sorted(list(map(str, df['Тип Комнатности'].unique())))
-    dummy_exp_df['Сред. цена м², тыс. р.'] = [''] * len(sorted(list(map(str, df['Тип Комнатности'].unique()))))
-    dummy_exp_df.set_index('Тип Комнатности', inplace=True)
+    dummy_exp_df['Комнат'] = sorted(df_filtered['Комнат'].unique())
+    dummy_exp_df['Сред. цена м², тыс. р.'] = [''] * len(sorted(df_filtered['Комнат'].unique()))
+    dummy_exp_df.set_index('Комнат', inplace=True)
 
-    for project in proj:
+    for project in proj_new:
 
-        df_filtered = df[(df['ЖК_рус'] == project) &
-                         (df['Тип помещения'].isin(apart_type)) &
-                         (df['Дата регистрации'] >= time_min) &
-                         (df['Дата регистрации'] <= time_max)]
+        df_filtered = df1[(df1['ЖК_рус'] == project) &
+                          (df1['Тип помещения'].isin(apart_type_new)) &
+                          (df1['Дата актуализации'] >= time_min) &
+                          (df1['Дата актуализации'] <= time_max)]
 
-        if (df_filtered['Тип Комнатности'].isnull().sum() == df_filtered.shape[0]) or (
+        if (df_filtered['Комнат'].isnull().sum() == df_filtered.shape[0]) or (
                 df_filtered['Площадь'].isnull().sum() == df_filtered.shape[0]) or (
-                df_filtered['Оценка цены'].isnull().sum() == df_filtered.shape[0]):
+                df_filtered['Цена'].isnull().sum() == df_filtered.shape[0]):
             pass
 
         else:
@@ -346,64 +367,63 @@ elif option == 'Экспозиция':
             # final_proj.append(project)
 
             pivot_1 = df_filtered.pivot_table(
-                index='Тип Комнатности',
+                index='Комнат',
                 values='ЖК_рус',
                 aggfunc='count')
             pivot_1.rename(columns={'ЖК_рус': 'Кол-во, шт.'}, inplace=True)
 
             pivot_2 = df_filtered.pivot_table(
-                index='Тип Комнатности',
+                index='Комнат',
                 values='Площадь',
                 aggfunc='mean')
             pivot_2.rename(columns={'Площадь': 'Сред. площадь, м²'}, inplace=True)
             pivot_2 = pivot_2.round(1)
 
             pivot_3 = df_filtered.pivot_table(
-                index='Тип Комнатности',
-                values='Оценка цены',
+                index='Комнат',
+                values='Цена',
                 aggfunc='min')
             pivot_3 = pivot_3 / 10 ** 6
-            pivot_3.rename(columns={'Оценка цены': 'Мин. цена, млн р.'}, inplace=True)
+            pivot_3.rename(columns={'Цена': 'Мин. цена, млн р.'}, inplace=True)
             pivot_3 = pivot_3.round(1)
 
             pivot_4 = df_filtered.pivot_table(
-                index='Тип Комнатности',
-                values='Оценка цены',
+                index='Комнат',
+                values='Цена',
                 aggfunc='max')
             pivot_4 = pivot_4 / 10 ** 6
-            pivot_4.rename(columns={'Оценка цены': 'Макс. цена, млн р.'}, inplace=True)
+            pivot_4.rename(columns={'Цена': 'Макс. цена, млн р.'}, inplace=True)
             pivot_4 = pivot_4.round(1)
 
             pivot_5 = df_filtered.pivot_table(
-                index='Тип Комнатности',
-                values='Оценка цены',
+                index='Комнат',
+                values='Цена',
                 aggfunc='mean')
             pivot_5 = pivot_5 / 10 ** 6
-            pivot_5.rename(columns={'Оценка цены': 'Сред. цена, млн р.'}, inplace=True)
+            pivot_5.rename(columns={'Цена': 'Сред. цена, млн р.'}, inplace=True)
             pivot_5 = pivot_5.round(1)
 
             pivot_6 = df_filtered.pivot_table(
-                index='Тип Комнатности',
-                values='Цена_м2',
+                index='Комнат',
+                values='Цена кв м',
                 aggfunc='min')
             pivot_6 = pivot_6 / 1000
-            pivot_6.rename(columns={'Цена_м2': 'Мин. цена м², тыс. р.'}, inplace=True)
+            pivot_6.rename(columns={'Цена кв м': 'Мин. цена м², тыс. р.'}, inplace=True)
             pivot_6 = pivot_6.applymap(round)
 
             pivot_7 = df_filtered.pivot_table(
-                index='Тип Комнатности',
-                values='Цена_м2',
+                index='Комнат',
+                values='Цена кв м',
                 aggfunc='max')
             pivot_7 = pivot_7 / 1000
-            pivot_7.rename(columns={'Цена_м2': 'Макс. цена м², тыс. р.'}, inplace=True)
+            pivot_7.rename(columns={'Цена кв м': 'Макс. цена м², тыс. р.'}, inplace=True)
             pivot_7 = pivot_7.applymap(round)
 
             pivot_8 = pd.DataFrame()
-            pivot_8['Тип Комнатности'] = df_filtered.pivot_table(index='Тип Комнатности', values='Оценка цены',
-                                                                 aggfunc='sum').index
-            pivot_8['Сред. цена м², тыс. р.'] = df_filtered.pivot_table(index='Тип Комнатности', values='Оценка цены',
+            pivot_8['Тип Комнатности'] = df_filtered.pivot_table(index='Комнат', values='Цена', aggfunc='sum').index
+            pivot_8['Сред. цена м², тыс. р.'] = df_filtered.pivot_table(index='Комнат', values='Цена',
                                                                         aggfunc='sum').values / df_filtered.pivot_table(
-                index='Тип Комнатности', values='Площадь', aggfunc='sum').values
+                index='Комнат', values='Площадь', aggfunc='sum').values
             pivot_8['Сред. цена м², тыс. р.'] = pivot_8['Сред. цена м², тыс. р.'] / 1000
             pivot_8.set_index('Тип Комнатности', inplace=True)
             pivot_8 = pivot_8.applymap(round)
@@ -418,6 +438,7 @@ elif option == 'Экспозиция':
 
     final_exp = pd.concat(result).reset_index()
     final_exp = final_exp.set_index(pd.Index(original_list))
+    final_exp = final_exp.rename(columns={"index": "Тип Комнатности"})
     #st.dataframe(final_exp)
     st.markdown(
         f'<div style="display: flex; justify-content: center;">'
