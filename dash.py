@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 import base64
+import toml
 
 
 
@@ -19,6 +20,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
 st.markdown('<style>div.block-container{padding-top:1rem;}</style>',unsafe_allow_html=True)
 
@@ -106,19 +108,16 @@ check = st.sidebar.checkbox("Экспозиция")
 
 
 # ВЫДЕЛЕНИЕ ПОСЛЕДНЕЙ СТРОКИ
-@st.cache_data
 def highlight_last_row(s):
     return ['background-color: #B1E2C0' if i == (len(s) - 1) else '' for i in range(len(s))]
 
 
 # ВЫДЕЛЕНИЕ ПОСЛЕДНЕЙ СТРОКИ + СТОЛБЦА
-@st.cache_data
 def highlight_last_row_and_column(s):
     return ['background-color: #B1E2C0' if (i == (len(s) - 1) or s.name == 'Общий итог') else '' for i in range(len(s))]
 
 
 # ДДУ ГОТОВО
-@st.cache_data
 def get_ddu(name, ap_types):
     project_ddu = df[(df['ЖК_рус'] == name) &
                      (df['Дата регистрации'] >= time_min) &
@@ -144,7 +143,6 @@ def get_ddu(name, ap_types):
 
 
 # Средняя стоимость м2, тыс руб. ГОТОВО
-@st.cache_data
 def get_mean_m2(name, ap_types):
     project_mean_m2_price = df[(df['ЖК_рус'] == name) &
                                (df['Дата регистрации'] >= time_min) &
@@ -183,7 +181,6 @@ def get_mean_m2(name, ap_types):
 
 
 # Средняя площадь, м2 ГОТОВО
-@st.cache_data
 def get_mean_square(name, ap_types):
     project_mean_square = df[(df['ЖК_рус'] == name) &
                              (df['Дата регистрации'] >= time_min) &
@@ -213,7 +210,6 @@ def get_mean_square(name, ap_types):
 
 
 # Средняя стоимость лота, млн руб. ГОТОВО
-@st.cache_data
 def get_mean_lot(name, ap_types):
     project_mean_lot = df[(df['ЖК_рус'] == name) &
                           (df['Дата регистрации'] >= time_min) &
@@ -246,7 +242,6 @@ def get_mean_lot(name, ap_types):
 
 
 # Итоговая таблица ГОТОВО
-@st.cache_data
 def get_main(ap_types):
     main_df = pd.DataFrame(columns=['Название проекта',
                                     'Количество зарегистрированных ДДУ, шт.',
@@ -424,14 +419,13 @@ elif check == True:
     #href = f'<a href="data:file/csv;base64,{b64}" download="Экспозиция{str(time_min)[:-9]}-{str(time_max)[:-9]}.csv">Скачать таблицу с экспозицией в формате .csv</a>'
     #st.markdown(href, unsafe_allow_html=True)
 
-    def download_dataframe_xlsx(x):
+def download_dataframe_xlsx(x):
         with st.spinner('Загрузка файла...'):
             x.to_excel(f"Экспозиция с {str(time_min)[:-9][-2:]}-{str(time_min)[:-9][-5:-3]}-{str(time_min)[:-9][-10:-6]} по {str(time_max)[:-9][-2:]}-{str(time_max)[:-9][-5:-3]}-{str(time_max)[:-9][-10:-6]}.xlsx", index=False)
         st.success('Файл успешно скачан')
 
-
-    if st.button('Загрузить экспозицию в формате .xlsx'):
-        download_dataframe_xlsx(final_exp)
+if st.button('Загрузить экспозицию в формате .xlsx'):
+    download_dataframe_xlsx(final_exp)
 
 
 
