@@ -6,7 +6,7 @@ import toml
 
 
 
-st.set_page_config(page_title='Конкурентный обзор · Nikoliers',
+st.set_page_config(page_title='Nikoliers · Анализ спроса',
                   page_icon='https://nikoliers.ru/favicon.ico',
                   layout='wide')
 
@@ -14,7 +14,7 @@ st.markdown(
     """
     <style>
     body {
-        zoom: 80%;
+        zoom: 85%;
     }
     </style>
     """,
@@ -24,7 +24,7 @@ st.markdown(
 
 st.markdown('<style>div.block-container{padding-top:1rem;}</style>',unsafe_allow_html=True)
 
-
+# REALTY_SOLD
 df = pd.read_pickle('realty_sold_06032024_SPB_LO.gz')
 
 
@@ -33,6 +33,14 @@ df = df.rename(columns={"ЖК рус": "ЖК_рус"}) # переименуем,
 df = df.replace('Шипилевский', 'Шепилевский') # переименуем на "Шепилевский"
 df = df[df['Уступка'] == 0] # уберём уступки
 df['Цена_м2'] = df['Оценка цены'] / df['Площадь']
+
+
+# NEW HISTORY
+df1 = pd.read_pickle('new_history_04032024_SPB_LO.gz')
+df1 = df1.rename(columns={"ЖК рус": "ЖК_рус"}) # переименуем, чтобы streamlit не ругался
+
+
+
 
 
 projects = sorted(df['ЖК_рус'].unique())
@@ -62,7 +70,7 @@ dummy_df.loc['Итог по месяцам'] = ['']
 
 
 
-st.title("Nikoliers · Конкурентный обзор | Экспозиция")
+st.title("Nikoliers · Анализ спроса")
 
 st.markdown("&nbsp;")
 
@@ -93,8 +101,7 @@ apart_type = st.sidebar.multiselect('**Выберите тип помещени�
 
 st.sidebar.markdown("&nbsp;")
 
-check = st.sidebar.checkbox("Экспозиция")
-
+option = st.sidebar.radio('**Выберите опцию**:', ('Конкурентный обзор', 'Экспозиция'), index=None)
 
 
 
@@ -271,8 +278,15 @@ def get_main(ap_types):
     return main_df
 
 
+# Загрузка xlsx-файла
+def download_dataframe_xlsx(x):
+    with st.spinner('Загрузка файла...'):
+        x.to_excel(f"Экспозиция с {str(time_min)[:-9][-2:]}-{str(time_min)[:-9][-5:-3]}-{str(time_min)[:-9][-10:-6]} по {str(time_max)[:-9][-2:]}-{str(time_max)[:-9][-5:-3]}-{str(time_max)[:-9][-10:-6]}.xlsx", index=False)
+        st.success('Файл успешно скачан')
 
-if (len(proj) * len(apart_type) != 0) and (check != True):
+
+
+if (len(proj) * len(apart_type) != 0) and (option == 'Конкурентный обзор'):
     st.write('<h4> Итоговая таблица по проектам:</h4>', unsafe_allow_html=True)
     st.write(get_main(apart_type).style.format(precision=1).apply(highlight_last_row))
     st.markdown("&nbsp;")
@@ -300,7 +314,7 @@ if (len(proj) * len(apart_type) != 0) and (check != True):
         st.markdown("&nbsp;")
         st.markdown('---')
         st.markdown("&nbsp;")
-elif check == True:
+elif option == 'Экспозиция':
     result = []
     final_list = []
     # final_proj = []
@@ -414,18 +428,10 @@ elif check == True:
 
     st.markdown("&nbsp;")
 
-    #csv = final_exp.to_csv(index=True)
-    #b64 = base64.b64encode(csv.encode()).decode()
-    #href = f'<a href="data:file/csv;base64,{b64}" download="Экспозиция{str(time_min)[:-9]}-{str(time_max)[:-9]}.csv">Скачать таблицу с экспозицией в формате .csv</a>'
-    #st.markdown(href, unsafe_allow_html=True)
+    download = st.button('Выгрузить таблицу в формате .xlsx')
 
-def download_dataframe_xlsx(x):
-        with st.spinner('Загрузка файла...'):
-            x.to_excel(f"Экспозиция с {str(time_min)[:-9][-2:]}-{str(time_min)[:-9][-5:-3]}-{str(time_min)[:-9][-10:-6]} по {str(time_max)[:-9][-2:]}-{str(time_max)[:-9][-5:-3]}-{str(time_max)[:-9][-10:-6]}.xlsx", index=False)
-        st.success('Файл успешно скачан')
-
-if st.button('Загрузить экспозицию в формате .xlsx'):
-    download_dataframe_xlsx(final_exp)
+    if download:
+        download_dataframe_xlsx(final_exp)
 
 
 
