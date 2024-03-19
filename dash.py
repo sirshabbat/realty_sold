@@ -6,7 +6,7 @@ import toml
 
 
 
-st.set_page_config(page_title='Nikoliers · Анализ спроса',
+st.set_page_config(page_title='Nikoliers · Конкурентный обзор',
                   page_icon='https://nikoliers.ru/favicon.ico',
                   layout='wide')
 
@@ -267,18 +267,18 @@ st.sidebar.image('https://nikoliers.ru/assets/img/nikoliers_logo.png', width=230
 
 st.sidebar.markdown("&nbsp;")
 
-option = st.sidebar.radio('**Выберите опцию**:', ('Конкурентный обзор', 'Экспозиция'), index=None)
+option = st.sidebar.radio('**Выберите опцию**:', ('Анализ спроса', 'Анализ предложения'), index=None)
 
 st.sidebar.markdown("&nbsp;")
 
 
-if option == 'Конкурентный обзор':
+if option == 'Анализ спроса':
     proj = st.sidebar.multiselect('**Выберите проект**:',
                                   options=projects)
     apart_type = st.sidebar.multiselect('**Выберите тип помещения**:',
                                         options=df[df['ЖК_рус'].isin(proj)]['Тип помещения'].unique())
 
-if option == 'Экспозиция':
+if option == 'Анализ предложения':
     proj_new = st.sidebar.multiselect('**Выберите проект**:',
                                       options=projects_new)
     apart_type_new = st.sidebar.multiselect('**Выберите тип помещения**:',
@@ -296,7 +296,7 @@ if option == 'Экспозиция':
 
 
 
-if option == 'Конкурентный обзор' and (len(proj) * len(apart_type) != 0):
+if option == 'Анализ спроса' and (len(proj) * len(apart_type) != 0):
     st.write('<h4> Итоговая таблица по проектам:</h4>', unsafe_allow_html=True)
     st.write(get_main(apart_type).style.format(precision=1).apply(highlight_last_row))
     st.markdown("&nbsp;")
@@ -324,7 +324,7 @@ if option == 'Конкурентный обзор' and (len(proj) * len(apart_ty
         st.markdown("&nbsp;")
         st.markdown('---')
         st.markdown("&nbsp;")
-elif option == 'Экспозиция' and (len(proj_new) * len(apart_type_new) != 0):
+elif option == 'Анализ предложения' and (len(proj_new) * len(apart_type_new) != 0):
     result = []
     final_list = []
     # final_proj = []
