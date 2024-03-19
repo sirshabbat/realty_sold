@@ -62,7 +62,7 @@ dummy_df.loc['Итог по месяцам'] = ['']
 
 
 
-st.title("Nikoliers · Анализ спроса")
+st.title("Nikoliers · Конкурентный обзор")
 
 st.markdown("&nbsp;")
 
