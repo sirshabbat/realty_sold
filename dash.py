@@ -10,17 +10,6 @@ st.set_page_config(page_title='Nikoliers · Анализ спроса',
                   page_icon='https://nikoliers.ru/favicon.ico',
                   layout='wide')
 
-st.markdown(
-    """
-    <style>
-    body {
-        zoom: 85%;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
 
 st.markdown('<style>div.block-container{padding-top:1rem;}</style>',unsafe_allow_html=True)
 
