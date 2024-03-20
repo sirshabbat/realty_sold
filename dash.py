@@ -14,21 +14,33 @@ st.set_page_config(page_title='Nikoliers · Конкурентный обзор'
 st.markdown('<style>div.block-container{padding-top:1rem;}</style>',unsafe_allow_html=True)
 
 # REALTY_SOLD
-df = pd.read_pickle('realty_sold_06032024_SPB_LO.gz')
-
-
-df = df[(df['Купил лотов в ЖК'].isin(np.arange(1,6))) & (df['Покупатель ЮЛ'].isna())] # лотов [1;5] + ЮЛ - NaN
-df = df.rename(columns={"ЖК рус": "ЖК_рус"}) # переименуем, чтобы streamlit не ругался
-df = df.replace('Шипилевский', 'Шепилевский') # переименуем на "Шепилевский"
-df = df[df['Уступка'] == 0] # уберём уступки
-df['Цена_м2'] = df['Оценка цены'] / df['Площадь']
-df['Тип Комнатности'].dropna(inplace=True)
+@st.cache_data
+def load_realty_sold():
+    df = pd.read_pickle('realty_sold_06032024_SPB_LO.gz')
+    df = df[(df['Купил лотов в ЖК'].isin(np.arange(1, 6))) & (df['Покупатель ЮЛ'].isna())]  # лотов [1;5] + ЮЛ - NaN
+    df = df.rename(columns={"ЖК рус": "ЖК_рус"})  # переименуем, чтобы streamlit не ругался
+    df = df.replace('Шипилевский', 'Шепилевский')  # переименуем на "Шепилевский"
+    df = df[df['Уступка'] == 0]  # уберём уступки
+    df['Цена_м2'] = df['Оценка цены'] / df['Площадь']
+    df['Тип Комнатности'].dropna(inplace=True)
+    return df
+df = load_realty_sold()
 
 
 # NEW HISTORY
-df1 = pd.read_pickle('new_history_04032024_SPB_LO.gz')
-df1 = df1.rename(columns={"ЖК рус": "ЖК_рус"}) # переименуем, чтобы streamlit не ругался
-df1['Дата актуализации'] = pd.to_datetime(df1['Дата актуализации'])
+@st.cache_data
+def load_new_history():
+    df1 = pd.read_pickle('new_history_04032024_SPB_LO.gz')
+    df1 = df1.rename(columns={"ЖК рус": "ЖК_рус"})  # переименуем, чтобы streamlit не ругался
+    df1['Дата актуализации'] = pd.to_datetime(df1['Дата актуализации'])
+    return df1
+df1 = load_new_history()
+
+
+
+
+
+
 
 
 
@@ -44,6 +56,7 @@ months = ['январь', 'февраль', 'март',
           'апрель', 'май', 'июнь',
           'июль', 'август', 'сентябрь',
           'октябрь', 'ноябрь', 'декабрь']
+
 month_map = {1: 'янв', 2: 'фев', 3: 'мар',
              4: 'апр', 5: 'май', 6: 'июн',
              7: 'июл', 8: 'авг', 9: 'сен',
@@ -65,6 +78,8 @@ proj_dict = {"Берег Курортный": [#'Глоракс Балтийск
                                          'Уан Тринити Плейс', 'Крестовский 4', 'Парусная 1', 'Петровская Коса',
                                          'Петровская доминанта', 'Петровский остров 1733', 'Императорский яхт-клуб',
                                          'Резиденция на Малой Невке', 'Три грации', 'Северная корона']}
+
+
 
 
 dummy_df = pd.DataFrame()
@@ -279,7 +294,6 @@ def download_dataframe_xlsx(x):
 
 
 
-
 # ПОЛЗУНКИ
 st.sidebar.image('https://nikoliers.ru/assets/img/nikoliers_logo.png', width=230)
 
@@ -372,15 +386,15 @@ if option == 'Анализ спроса' and (len(proj) * len(apart_type) != 0):
         st.markdown("&nbsp;")
         st.markdown('---')
         st.markdown("&nbsp;")
-elif option == 'Анализ предложения' and (len(proj_new) * len(apart_type_new) != 0):
+
+
+if option == 'Анализ предложения' and (len(proj_new) * len(apart_type_new) != 0):
     result = []
     final_list = []
     # final_proj = []
     original_list = []
 
-    df_filtered = df1[(df1['Тип помещения'].isin(proj_new)) &
-                      (df1['Дата актуализации'] >= time_min) &
-                      (df1['Дата актуализации'] <= time_max)]
+    df_filtered = df1[df1['Тип помещения'].isin(proj_new)]
 
     dummy_exp_df = pd.DataFrame()
     dummy_exp_df['Комнат'] = sorted(df_filtered['Комнат'].unique())
@@ -390,9 +404,7 @@ elif option == 'Анализ предложения' and (len(proj_new) * len(ap
     for project in proj_new:
 
         df_filtered = df1[(df1['ЖК_рус'] == project) &
-                          (df1['Тип помещения'].isin(apart_type_new)) &
-                          (df1['Дата актуализации'] >= time_min) &
-                          (df1['Дата актуализации'] <= time_max)]
+                          (df1['Тип помещения'].isin(apart_type_new))]
 
         if (df_filtered['Комнат'].isnull().sum() == df_filtered.shape[0]) or (
                 df_filtered['Площадь'].isnull().sum() == df_filtered.shape[0]) or (
@@ -486,8 +498,8 @@ elif option == 'Анализ предложения' and (len(proj_new) * len(ap
 
     st.markdown("&nbsp;")
 
-    download = st.button('Выгрузить таблицу в формате .xlsx')
-
+    download = st.button('Загрузить в формате .xlsx',
+                         help=f'Таблица составлена за период с {str(df1["Дата актуализации"].min())[:-9]} по {str(df1["Дата актуализации"].max())[:-9]}')
     if download:
         download_dataframe_xlsx(final_exp)
 
