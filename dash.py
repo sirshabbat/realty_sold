@@ -277,10 +277,15 @@ def get_main(ap_types):
                      (df['Дата регистрации'] >= time_min) &
                      (df['Дата регистрации'] <= time_max)]
 
-    main_df.loc['Итоговые значения'] = [main_df['Количество зарегистрированных ДДУ, шт.'].sum(),  # итоговое количество ДДУ
-                      df_filtered[df_filtered['Тип Комнатности'].notna()]['Площадь'].mean(),  # итоговая средняя площадь
-                      df_filtered[df_filtered['Тип Комнатности'].notna()]['Оценка цены'].sum() / df_filtered[df_filtered['Тип Комнатности'].notna()]['Площадь'].sum() / 1000,  # итоговая сред. стоимость м2
-                      df_filtered[df_filtered['Тип Комнатности'].notna()]['Оценка цены'].mean() / 10**6]  # итоговая средняя цена лота
+    global main_df_result
+
+    main_df_result = pd.DataFrame(dict(zip(list(main_df.columns), [[int(main_df['Количество зарегистрированных ДДУ, шт.'].sum())], # итоговое количество ДДУ
+                                        [df_filtered[df_filtered['Тип Комнатности'].notna()]['Площадь'].mean()], # итоговая средняя площадь
+                                        [int(df_filtered[df_filtered['Тип Комнатности'].notna()]['Оценка цены'].sum() /
+                                        df_filtered[df_filtered['Тип Комнатности'].notna()]['Площадь'].sum() / 1000)], # итоговая сред. стоимость м2
+                                        [df_filtered[df_filtered['Тип Комнатности'].notna()]['Оценка цены'].mean() / 10 ** 6]])))  # итоговая средняя цена лота
+
+
     main_df['Количество зарегистрированных ДДУ, шт.'] = main_df['Количество зарегистрированных ДДУ, шт.'].apply(int)
     main_df['Средняя стоимость м², тыс. руб.'] = main_df['Средняя стоимость м², тыс. руб.'].apply(round)
 
@@ -358,8 +363,21 @@ if option == 'Анализ предложения' and not proj_choice:
 
 if option == 'Анализ спроса' and (len(proj) * len(apart_type) != 0):
     st.write('<h4> Итоговая таблица по проектам:</h4>', unsafe_allow_html=True)
+    st.markdown("&nbsp;")
+    main_filter = st.selectbox('**Выберите фильтр:**', get_main(apart_type).columns, index=0)
+    st.markdown("&nbsp;")
 
-    st.dataframe(get_main(apart_type).style.format(precision=1).apply(highlight_last_row), height=39*(len(proj)+2))
+    st.write(get_main(apart_type).sort_values(by=main_filter, ascending=False).reset_index().style.format(precision=1).to_html(), unsafe_allow_html=True)
+    st.markdown("&nbsp;")
+    st.markdown("&nbsp;")
+
+
+    st.write(main_df_result.style.format(precision=1).apply(highlight_last_row).to_html(), unsafe_allow_html=True)
+    st.markdown("&nbsp;")
+
+
+    #st.dataframe(get_main(apart_type).style.format(precision=1).apply(highlight_last_row), height=39*(len(proj)+2))
+    st.markdown("&nbsp;")
     st.markdown("---")
     st.markdown("&nbsp;")
 
@@ -486,13 +504,8 @@ if option == 'Анализ предложения' and (len(proj_new) * len(apar
     final_exp = pd.concat(result).reset_index()
     final_exp = final_exp.set_index(pd.Index(original_list))
     final_exp = final_exp.rename(columns={"index": "Тип Комнатности"})
-    #st.dataframe(final_exp)
-    st.markdown(
-        f'<div style="display: flex; justify-content: center;">'
-        f'{final_exp.to_html(classes="dataframe", index=True)}'
-        f'</div>',
-        unsafe_allow_html=True
-    )
+    final_exp = final_exp.to_html()
+    st.write(final_exp, unsafe_allow_html=True)
 
     st.markdown("&nbsp;")
 
