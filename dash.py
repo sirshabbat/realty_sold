@@ -23,6 +23,7 @@ def load_realty_sold():
     df = df[df['Уступка'] == 0]  # уберём уступки
     df['Цена_м2'] = df['Оценка цены'] / df['Площадь']
     df['Тип Комнатности'].dropna(inplace=True)
+    df['Дата'] = df['Дата регистрации'].dt.to_period('M')
     return df
 df = load_realty_sold()
 
@@ -140,7 +141,7 @@ def get_ddu(name, ap_types):
                      (df['Тип помещения'].isin(ap_types))].pivot_table(
         index='Тип Комнатности',
         values='ЖК_рус',
-        columns=df['Дата регистрации'].dt.month,
+        columns=df['Дата'],
         aggfunc='count')
 
     if project_ddu.shape[0] == 0:
@@ -151,7 +152,7 @@ def get_ddu(name, ap_types):
         project_ddu = project_ddu.assign(total=project_ddu.sum(axis=1))
         project_ddu.rename(columns={'total': 'Общий итог'}, inplace=True)
         project_ddu.loc['Итог по месяцам'] = project_ddu.sum()
-        project_ddu.rename(columns=month_map, inplace=True)
+        #project_ddu.rename(columns=month_map, inplace=True)
         project_ddu = project_ddu.applymap(int)
         project_ddu.replace(0, '', inplace=True)
         return project_ddu#.style.format(precision=0).apply(highlight_last_row_and_column)
@@ -165,7 +166,7 @@ def get_mean_m2(name, ap_types):
                                (df['Тип помещения'].isin(ap_types))].pivot_table(
         index='Тип Комнатности',
         values='Оценка цены',
-        columns=df['Дата регистрации'].dt.month,
+        columns=df['Дата'],
         aggfunc='sum')
 
     project_mean_m2_price['Общий итог'] = project_mean_m2_price.sum(axis=1)
@@ -175,7 +176,7 @@ def get_mean_m2(name, ap_types):
                                 (df['Дата регистрации'] <= time_max)].pivot_table(
         index='Тип Комнатности',
         values='Площадь',
-        columns=df['Дата регистрации'].dt.month,
+        columns=df['Дата'],
         aggfunc='sum')
 
     project_mean_m2_square['Общий итог'] = project_mean_m2_square.sum(axis=1)
@@ -189,7 +190,7 @@ def get_mean_m2(name, ap_types):
         new_mean_m2.loc['Итог по месяцам'] = project_mean_m2_price.sum(axis=0) / project_mean_m2_square.sum(axis=0) / 1000
         # new_mean_m2.loc['Итог по месяцам'] = new_mean_m2.sum(axis=0)
         new_mean_m2.fillna(0, inplace=True)
-        new_mean_m2.rename(columns=month_map, inplace=True)
+        #new_mean_m2.rename(columns=month_map, inplace=True)
         new_mean_m2 = new_mean_m2.applymap(round)
         new_mean_m2.replace(0, '', inplace=True)
         return new_mean_m2#.style.format(precision=0).apply(highlight_last_row_and_column)
@@ -203,7 +204,7 @@ def get_mean_square(name, ap_types):
                              (df['Тип помещения'].isin(ap_types))].pivot_table(
         index='Тип Комнатности',
         values='Площадь',
-        columns=df['Дата регистрации'].dt.month,
+        columns=df['Дата'],
         aggfunc='mean')
 
     df_filtered = df[(df['ЖК_рус'] == name) &
@@ -215,7 +216,7 @@ def get_mean_square(name, ap_types):
         return dummy_df
         #return st.write('<h6>Невозможно составить таблицу с заданными фильтрами</h6>', unsafe_allow_html=True)
     else:
-        project_mean_square.loc['Итог по месяцам'] = [df_filtered[df_filtered['Дата регистрации'].dt.month == month]['Площадь'].mean() for month in sorted(df_filtered['Дата регистрации'].dt.month.unique())]
+        project_mean_square.loc['Итог по месяцам'] = [df_filtered[df_filtered['Дата'] == date]['Площадь'].mean() for date in sorted(df_filtered['Дата'].unique())]
         project_mean_square['Общий итог'] = [df_filtered[df_filtered['Тип Комнатности'] == apart]['Площадь'].mean() for apart in sorted(df_filtered['Тип Комнатности'].dropna().unique())] + [df_filtered['Площадь'].mean()]
 
         project_mean_square.fillna(0, inplace=True)
@@ -232,7 +233,7 @@ def get_mean_lot(name, ap_types):
                           (df['Тип помещения'].isin(ap_types))].pivot_table(
         index='Тип Комнатности',
         values='Оценка цены',
-        columns=df['Дата регистрации'].dt.month,
+        columns=df['Дата'],
         aggfunc='mean')
 
     df_filtered = df[(df['ЖК_рус'] == name) &
@@ -245,12 +246,12 @@ def get_mean_lot(name, ap_types):
         #return st.write('<h6>Невозможно составить таблицу с заданными фильтрами</h6>', unsafe_allow_html=True)
     else:
 
-        project_mean_lot.loc['Итог по месяцам'] = [df_filtered[df_filtered['Дата регистрации'].dt.month == month]['Оценка цены'].mean() for month in sorted(df_filtered['Дата регистрации'].dt.month.unique())]
+        project_mean_lot.loc['Итог по месяцам'] = [df_filtered[df_filtered['Дата'] == date]['Оценка цены'].mean() for date in sorted(df_filtered['Дата'].unique())]
         project_mean_lot['Общий итог'] = [df_filtered[df_filtered['Тип Комнатности'] == apart]['Оценка цены'].mean() for apart in sorted(df_filtered['Тип Комнатности'].dropna().unique())] + [df_filtered['Оценка цены'].mean()]
 
         project_mean_lot.fillna(0, inplace=True)
         project_mean_lot = project_mean_lot / 10 ** 6
-        project_mean_lot.rename(columns=month_map, inplace=True)
+        #project_mean_lot.rename(columns=month_map, inplace=True)
         project_mean_lot = round(project_mean_lot, 1)
         project_mean_lot.replace(0, '', inplace=True)
         return project_mean_lot
@@ -355,13 +356,10 @@ if option == 'Анализ предложения' and not proj_choice:
 
 
 
-
-
-
 if option == 'Анализ спроса' and (len(proj) * len(apart_type) != 0):
     st.write('<h4> Итоговая таблица по проектам:</h4>', unsafe_allow_html=True)
-    st.write(get_main(apart_type).style.format(precision=1).apply(highlight_last_row))
-    st.markdown("&nbsp;")
+
+    st.dataframe(get_main(apart_type).style.format(precision=1).apply(highlight_last_row), height=39*(len(proj)+2))
     st.markdown("---")
     st.markdown("&nbsp;")
 
