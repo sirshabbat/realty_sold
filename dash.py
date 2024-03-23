@@ -1,8 +1,6 @@
 import pandas as pd
 import numpy as np
 import streamlit as st
-import base64
-import toml
 
 
 
@@ -10,8 +8,7 @@ st.set_page_config(page_title='Nikoliers · Конкурентный обзор'
                   page_icon='https://nikoliers.ru/favicon.ico',
                   layout='wide')
 
-
-st.markdown('<style>div.block-container{padding-top:1rem;}</style>',unsafe_allow_html=True)
+st.markdown('<style>div.block-container{padding-top:1rem;}</style>', unsafe_allow_html=True)
 
 # REALTY_SOLD
 @st.cache_data
@@ -36,12 +33,6 @@ def load_new_history():
     df1['Дата актуализации'] = pd.to_datetime(df1['Дата актуализации'])
     return df1
 df1 = load_new_history()
-
-
-
-
-
-
 
 
 
@@ -124,16 +115,19 @@ st.markdown("&nbsp;")
 
 
 # ВЫДЕЛЕНИЕ ПОСЛЕДНЕЙ СТРОКИ
+@st.cache_data
 def highlight_last_row(s):
     return ['background-color: #B1E2C0' if i == (len(s) - 1) else '' for i in range(len(s))]
 
 
 # ВЫДЕЛЕНИЕ ПОСЛЕДНЕЙ СТРОКИ + СТОЛБЦА
+@st.cache_data
 def highlight_last_row_and_column(s):
     return ['background-color: #B1E2C0' if (i == (len(s) - 1) or s.name == 'Общий итог') else '' for i in range(len(s))]
 
 
 # ДДУ ГОТОВО
+@st.cache_data
 def get_ddu(name, ap_types):
     project_ddu = df[(df['ЖК_рус'] == name) &
                      (df['Дата регистрации'] >= time_min) &
@@ -159,6 +153,7 @@ def get_ddu(name, ap_types):
 
 
 # Средняя стоимость м2, тыс руб. ГОТОВО
+@st.cache_data
 def get_mean_m2(name, ap_types):
     project_mean_m2_price = df[(df['ЖК_рус'] == name) &
                                (df['Дата регистрации'] >= time_min) &
@@ -197,6 +192,7 @@ def get_mean_m2(name, ap_types):
 
 
 # Средняя площадь, м2 ГОТОВО
+@st.cache_data
 def get_mean_square(name, ap_types):
     project_mean_square = df[(df['ЖК_рус'] == name) &
                              (df['Дата регистрации'] >= time_min) &
@@ -226,6 +222,7 @@ def get_mean_square(name, ap_types):
 
 
 # Средняя стоимость лота, млн руб. ГОТОВО
+@st.cache_data
 def get_mean_lot(name, ap_types):
     project_mean_lot = df[(df['ЖК_рус'] == name) &
                           (df['Дата регистрации'] >= time_min) &
@@ -292,11 +289,32 @@ def get_main(ap_types):
     return main_df
 
 
+# Итоговые значения по итоговой таблице
+@st.cache_data
+def get_main_results():
+    a = sum(get_main(apart_type)['Количество зарегистрированных ДДУ, шт.'] * get_main(apart_type)['Средняя стоимость одного лота, млн руб.'])
+    b = sum(get_main(apart_type)['Количество зарегистрированных ДДУ, шт.'] * get_main(apart_type)['Средняя площадь, м²'])
+    mean_m2 = a/b * 1000
+
+    ddu = sum(get_main(apart_type)['Количество зарегистрированных ДДУ, шт.'])
+
+    mean_square = b / ddu
+
+    mean_lot = a / ddu
+
+    return {'Количество зарегистрированных ДДУ, шт.': round(ddu),
+            'Средняя площадь, м²': round(mean_square, 1),
+            'Средняя стоимость м², тыс. руб.': round(mean_m2),
+            'Средняя стоимость одного лота, млн руб.': round(mean_lot, 1)}
+
+
 # Загрузка xlsx-файла
+@st.cache_data
 def download_dataframe_xlsx(x):
     with st.spinner('Загрузка файла...'):
-        x.to_excel(f"Экспозиция с {str(time_min)[:-9][-2:]}-{str(time_min)[:-9][-5:-3]}-{str(time_min)[:-9][-10:-6]} по {str(time_max)[:-9][-2:]}-{str(time_max)[:-9][-5:-3]}-{str(time_max)[:-9][-10:-6]}.xlsx", index=False)
+        x.to_excel(f"Экспозиция с {str(df1['Дата актуализации'].min())[:-9][-2:]}-{str(df1['Дата актуализации'].min())[:-9][-5:-3]}-{str(df1['Дата актуализации'].min())[:-9][-10:-6]} по {str(df1['Дата актуализации'].max())[:-9][-2:]}-{str(df1['Дата актуализации'].max())[:-9][-5:-3]}-{str(df1['Дата актуализации'].max())[:-9][-10:-6]}.xlsx", index=False)
         st.success('Файл успешно скачан')
+
 
 
 
@@ -322,7 +340,7 @@ proj_choice = st.sidebar.selectbox('**Выберите проект ED:**', proj
 if option == 'Анализ спроса' and proj_choice:
 
     proj = st.sidebar.multiselect('**Выберите проект**:',
-                                  options=proj_dict[proj_choice], default=proj_dict[proj_choice])
+                                  options=sorted(proj_dict[proj_choice]), default=sorted(proj_dict[proj_choice]))
 
     apart_type = st.sidebar.multiselect('**Выберите тип помещения**:',
                                         options=df[df['ЖК_рус'].isin(proj)]['Тип помещения'].unique())
@@ -330,25 +348,25 @@ if option == 'Анализ спроса' and proj_choice:
 if option == 'Анализ предложения' and proj_choice:
 
     proj_new = st.sidebar.multiselect('**Выберите проект**:',
-                                  options=proj_dict[proj_choice], default=proj_dict[proj_choice])
+                                  options=sorted(proj_dict[proj_choice]), default=sorted(proj_dict[proj_choice]))
 
     apart_type_new = st.sidebar.multiselect('**Выберите тип помещения**:',
-                                        options=df1[df1['ЖК_рус'].isin(proj_new)]['Тип помещения'].unique())
+                                        options=sorted(df1[df1['ЖК_рус'].isin(proj_new)]['Тип помещения'].unique()))
 
 if option == 'Анализ спроса' and not proj_choice:
 
     proj = st.sidebar.multiselect('**Выберите проект**:',
-                                  options=projects)
+                                  options=sorted(projects))
 
     apart_type = st.sidebar.multiselect('**Выберите тип помещения**:',
-                                        options=df[df['ЖК_рус'].isin(proj)]['Тип помещения'].unique())
+                                        options=sorted(df[df['ЖК_рус'].isin(proj)]['Тип помещения'].unique()))
 
 if option == 'Анализ предложения' and not proj_choice:
 
     proj_new = st.sidebar.multiselect('**Выберите проект**:',
-                                      options=projects_new)
+                                      options=sorted(projects_new))
     apart_type_new = st.sidebar.multiselect('**Выберите тип помещения**:',
-                                            options=df1[df1['ЖК_рус'].isin(proj_new)]['Тип помещения'].unique())
+                                            options=sorted(df1[df1['ЖК_рус'].isin(proj_new)]['Тип помещения'].unique()))
 
 
 
@@ -358,23 +376,23 @@ if option == 'Анализ предложения' and not proj_choice:
 
 
 
-
-
-
 if option == 'Анализ спроса' and (len(proj) * len(apart_type) != 0):
+    main_filter = st.selectbox('**Выберите показатель для фильтрации итоговой таблицы:**', get_main(apart_type).columns, index=0)
+    st.markdown("&nbsp;")
     st.write('<h4> Итоговая таблица по проектам:</h4>', unsafe_allow_html=True)
-    st.markdown("&nbsp;")
-    main_filter = st.selectbox('**Выберите фильтр:**', get_main(apart_type).columns, index=0)
-    st.markdown("&nbsp;")
-
     st.write(get_main(apart_type).sort_values(by=main_filter, ascending=False).reset_index().style.format(precision=1).to_html(), unsafe_allow_html=True)
     st.markdown("&nbsp;")
-    st.markdown("&nbsp;")
+
+    #st.write(main_df_result.style.format(precision=1).apply(highlight_last_row).to_html(), unsafe_allow_html=True)
+    #st.markdown("&nbsp;")
 
 
-    st.write(main_df_result.style.format(precision=1).apply(highlight_last_row).to_html(), unsafe_allow_html=True)
-    st.markdown("&nbsp;")
-
+    col1, col2, col3, col4 = st.columns(4)
+    columns = [col1, col2, col3, col4]
+    for col in columns:
+        with col:
+            st.metric(f"**{list(get_main_results().keys())[columns.index(col)]}**",
+                      list(get_main_results().values())[columns.index(col)])
 
     #st.dataframe(get_main(apart_type).style.format(precision=1).apply(highlight_last_row), height=39*(len(proj)+2))
     st.markdown("&nbsp;")
@@ -504,8 +522,8 @@ if option == 'Анализ предложения' and (len(proj_new) * len(apar
     final_exp = pd.concat(result).reset_index()
     final_exp = final_exp.set_index(pd.Index(original_list))
     final_exp = final_exp.rename(columns={"index": "Тип Комнатности"})
-    final_exp = final_exp.to_html()
-    st.write(final_exp, unsafe_allow_html=True)
+    #final_exp = final_exp.to_html()
+    st.write(final_exp.to_html(), unsafe_allow_html=True)
 
     st.markdown("&nbsp;")
 
@@ -513,15 +531,6 @@ if option == 'Анализ предложения' and (len(proj_new) * len(apar
                          help=f'Таблица составлена за период с {str(df1["Дата актуализации"].min())[:-9]} по {str(df1["Дата актуализации"].max())[:-9]}')
     if download:
         download_dataframe_xlsx(final_exp)
-
-
-
-
-
-
-
-
-
 
 
 
