@@ -1,59 +1,72 @@
 import pandas as pd
 import numpy as np
 import streamlit as st
+from streamlit_option_menu import option_menu
 
-
-
+# ПАРАМЕТРЫ СТРАНИЦЫ
 st.set_page_config(page_title='Nikoliers · Конкурентный обзор',
                   page_icon='https://nikoliers.ru/favicon.ico',
                   layout='wide')
-
 st.markdown('<style>div.block-container{padding-top:1rem;}</style>', unsafe_allow_html=True)
 
+
+
+
+
+
+
+# ЗАГРУЗКА ДАННЫХ
+
 # REALTY_SOLD
-@st.cache_data
+@st.cache_data()
 def load_realty_sold():
     df = pd.read_pickle('realty_sold_06032024_SPB_LO.gz')
     df = df[(df['Купил лотов в ЖК'].isin(np.arange(1, 6))) & (df['Покупатель ЮЛ'].isna())]  # лотов [1;5] + ЮЛ - NaN
-    df = df.rename(columns={"ЖК рус": "ЖК_рус"})  # переименуем, чтобы streamlit не ругался
+    df = df.rename(columns={"ЖК рус": "ЖК_рус"})
     df = df.replace('Шипилевский', 'Шепилевский')  # переименуем на "Шепилевский"
     df = df[df['Уступка'] == 0]  # уберём уступки
     df['Цена_м2'] = df['Оценка цены'] / df['Площадь']
     df['Тип Комнатности'].dropna(inplace=True)
     df['Дата'] = df['Дата регистрации'].dt.to_period('M')
     return df
-df = load_realty_sold()
-
 
 # NEW HISTORY
-@st.cache_data
+@st.cache_data()
 def load_new_history():
     df1 = pd.read_pickle('new_history_04032024_SPB_LO.gz')
-    df1 = df1.rename(columns={"ЖК рус": "ЖК_рус"})  # переименуем, чтобы streamlit не ругался
+    df1 = df1.rename(columns={"ЖК рус": "ЖК_рус"})
     df1['Дата актуализации'] = pd.to_datetime(df1['Дата актуализации'])
+    df1['Комнат'].dropna(inplace=True)
     return df1
-df1 = load_new_history()
+
+
+# ОПРЕДЕЛЕНИЕ ВТОРОСТЕПЕННЫХ ФУНКЦИЙ
+
+# ПУСТАЯ ТАБЛИЦА
+@st.cache_data
+def get_dummy_df():
+    dummy_df = pd.DataFrame()
+    dummy_df['Общий итог'] = ['']
+    dummy_df.loc['Итог по месяцам'] = ['']
+    return dummy_df
+
+# ВЫДЕЛЕНИЕ ПОСЛЕДНЕГО СТОЛБЦА И ПОСЛЕДНЕЙ СТРОКИ ТАБЛИЦЫ
+@st.cache_data
+def highlight_last_row_and_column(s):
+    return ['background-color: #B1E2C0' if (i == (len(s) - 1) or s.name == 'Общий итог') else '' for i in range(len(s))]
+
+# ВЫГРУЗКА ТАБЛИЦЫ В XLSX
+@st.cache_data
+def download_dataframe_xlsx(x):
+    with st.spinner('Загрузка файла...'):
+        x.to_excel(f"Экспозиция с {str(df['Дата актуализации'].min())[:-9][-2:]}-{str(df['Дата актуализации'].min())[:-9][-5:-3]}-{str(df['Дата актуализации'].min())[:-9][-10:-6]} по {str(df['Дата актуализации'].max())[:-9][-2:]}-{str(df['Дата актуализации'].max())[:-9][-5:-3]}-{str(df['Дата актуализации'].max())[:-9][-10:-6]}.xlsx", index=False)
+        st.success('Файл успешно скачан')
 
 
 
 
 
-projects = sorted(df['ЖК_рус'].unique())
-
-projects_new = sorted(df1['ЖК_рус'].unique())
-
-
-
-months = ['январь', 'февраль', 'март',
-          'апрель', 'май', 'июнь',
-          'июль', 'август', 'сентябрь',
-          'октябрь', 'ноябрь', 'декабрь']
-
-month_map = {1: 'янв', 2: 'фев', 3: 'мар',
-             4: 'апр', 5: 'май', 6: 'июн',
-             7: 'июл', 8: 'авг', 9: 'сен',
-             10: 'окт', 11: 'ноя', 12: 'дек'}
-
+# ПРОЕКТЫ ELEMENT DEVELOPMENT
 proj_dict = {"Берег Курортный": [#'Глоракс Балтийская',
                                  'Глоракс Василеостровский', 'Глоракс Премиум Василеостровский',
                                  'Резиденция Рощино', 'Лисино', 'Морская Набережная', 'Нева Резиденс', 'Аквилон Залив',
@@ -74,22 +87,18 @@ proj_dict = {"Берег Курортный": [#'Глоракс Балтийск
 
 
 
-dummy_df = pd.DataFrame()
-dummy_df['Общий итог'] = ['']
-dummy_df.loc['Итог по месяцам'] = ['']
 
 
 
 
 
 
-# --- ОСНОВНАЯ ЧАСТЬ --- #
 
 
+
+# ПОЛЗУНКИ / ФИЛЬТРЫ
 
 st.title("Nikoliers · Конкурентный обзор")
-
-st.markdown("&nbsp;")
 
 
 
@@ -101,436 +110,353 @@ with col2:
     time_max = pd.to_datetime(st.date_input("\U0001f5d3\ufe0f **Выберите конечную дату:**",
                                             value=pd.to_datetime('2023-12-31 00:00:00')))
 
-st.markdown("&nbsp;")
 
 
 
-
-
-
-
-
-
-# --- ФУНКЦИИ --- #
-
-
-# ВЫДЕЛЕНИЕ ПОСЛЕДНЕЙ СТРОКИ
-@st.cache_data
-def highlight_last_row(s):
-    return ['background-color: #B1E2C0' if i == (len(s) - 1) else '' for i in range(len(s))]
-
-
-# ВЫДЕЛЕНИЕ ПОСЛЕДНЕЙ СТРОКИ + СТОЛБЦА
-@st.cache_data
-def highlight_last_row_and_column(s):
-    return ['background-color: #B1E2C0' if (i == (len(s) - 1) or s.name == 'Общий итог') else '' for i in range(len(s))]
-
-
-# ДДУ ГОТОВО
-@st.cache_data
-def get_ddu(name, ap_types):
-    project_ddu = df[(df['ЖК_рус'] == name) &
-                     (df['Дата регистрации'] >= time_min) &
-                     (df['Дата регистрации'] <= time_max) &
-                     (df['Тип помещения'].isin(ap_types))].pivot_table(
-        index='Тип Комнатности',
-        values='ЖК_рус',
-        columns=df['Дата'],
-        aggfunc='count')
-
-    if project_ddu.shape[0] == 0:
-        return dummy_df
-        #return st.write('<h6>Невозможно составить таблицу с заданными фильтрами</h6>', unsafe_allow_html=True)
-    else:
-        project_ddu.fillna(0, inplace=True)
-        project_ddu = project_ddu.assign(total=project_ddu.sum(axis=1))
-        project_ddu.rename(columns={'total': 'Общий итог'}, inplace=True)
-        project_ddu.loc['Итог по месяцам'] = project_ddu.sum()
-        #project_ddu.rename(columns=month_map, inplace=True)
-        project_ddu = project_ddu.applymap(int)
-        project_ddu.replace(0, '', inplace=True)
-        return project_ddu#.style.format(precision=0).apply(highlight_last_row_and_column)
-
-
-# Средняя стоимость м2, тыс руб. ГОТОВО
-@st.cache_data
-def get_mean_m2(name, ap_types):
-    project_mean_m2_price = df[(df['ЖК_рус'] == name) &
-                               (df['Дата регистрации'] >= time_min) &
-                               (df['Дата регистрации'] <= time_max) &
-                               (df['Тип помещения'].isin(ap_types))].pivot_table(
-        index='Тип Комнатности',
-        values='Оценка цены',
-        columns=df['Дата'],
-        aggfunc='sum')
-
-    project_mean_m2_price['Общий итог'] = project_mean_m2_price.sum(axis=1)
-
-    project_mean_m2_square = df[(df['ЖК_рус'] == name) &
-                                (df['Дата регистрации'] >= time_min) &
-                                (df['Дата регистрации'] <= time_max)].pivot_table(
-        index='Тип Комнатности',
-        values='Площадь',
-        columns=df['Дата'],
-        aggfunc='sum')
-
-    project_mean_m2_square['Общий итог'] = project_mean_m2_square.sum(axis=1)
-
-    if project_mean_m2_price.shape[0] == 0:
-        return dummy_df
-        #return st.write('<h6>Невозможно составить таблицу с заданными фильтрами</h6>', unsafe_allow_html=True)
-    else:
-        new_mean_m2 = project_mean_m2_price / project_mean_m2_square / 1000
-        # new_mean_m2['Общий итог'] = project_mean_m2_price.sum(axis=1) / project_mean_m2_square.sum(axis=1) / 1000
-        new_mean_m2.loc['Итог по месяцам'] = project_mean_m2_price.sum(axis=0) / project_mean_m2_square.sum(axis=0) / 1000
-        # new_mean_m2.loc['Итог по месяцам'] = new_mean_m2.sum(axis=0)
-        new_mean_m2.fillna(0, inplace=True)
-        #new_mean_m2.rename(columns=month_map, inplace=True)
-        new_mean_m2 = new_mean_m2.applymap(round)
-        new_mean_m2.replace(0, '', inplace=True)
-        return new_mean_m2#.style.format(precision=0).apply(highlight_last_row_and_column)
-
-
-# Средняя площадь, м2 ГОТОВО
-@st.cache_data
-def get_mean_square(name, ap_types):
-    project_mean_square = df[(df['ЖК_рус'] == name) &
-                             (df['Дата регистрации'] >= time_min) &
-                             (df['Дата регистрации'] <= time_max) &
-                             (df['Тип помещения'].isin(ap_types))].pivot_table(
-        index='Тип Комнатности',
-        values='Площадь',
-        columns=df['Дата'],
-        aggfunc='mean')
-
-    df_filtered = df[(df['ЖК_рус'] == name) &
-                     (df['Тип помещения'].isin(ap_types)) &
-                     (df['Дата регистрации'] >= time_min) &
-                     (df['Дата регистрации'] <= time_max)]
-
-    if project_mean_square.shape[0] == 0:
-        return dummy_df
-        #return st.write('<h6>Невозможно составить таблицу с заданными фильтрами</h6>', unsafe_allow_html=True)
-    else:
-        project_mean_square.loc['Итог по месяцам'] = [df_filtered[df_filtered['Дата'] == date]['Площадь'].mean() for date in sorted(df_filtered['Дата'].unique())]
-        project_mean_square['Общий итог'] = [df_filtered[df_filtered['Тип Комнатности'] == apart]['Площадь'].mean() for apart in sorted(df_filtered['Тип Комнатности'].dropna().unique())] + [df_filtered['Площадь'].mean()]
-
-        project_mean_square.fillna(0, inplace=True)
-        project_mean_square.rename(columns=month_map, inplace=True)
-        project_mean_square.replace(0, '', inplace=True)
-        return round(project_mean_square, 1)
-
-
-# Средняя стоимость лота, млн руб. ГОТОВО
-@st.cache_data
-def get_mean_lot(name, ap_types):
-    project_mean_lot = df[(df['ЖК_рус'] == name) &
-                          (df['Дата регистрации'] >= time_min) &
-                          (df['Дата регистрации'] <= time_max) &
-                          (df['Тип помещения'].isin(ap_types))].pivot_table(
-        index='Тип Комнатности',
-        values='Оценка цены',
-        columns=df['Дата'],
-        aggfunc='mean')
-
-    df_filtered = df[(df['ЖК_рус'] == name) &
-                     (df['Тип помещения'].isin(ap_types)) &
-                     (df['Дата регистрации'] >= time_min) &
-                     (df['Дата регистрации'] <= time_max)]
-
-    if project_mean_lot.shape[0] == 0:
-        return dummy_df
-        #return st.write('<h6>Невозможно составить таблицу с заданными фильтрами</h6>', unsafe_allow_html=True)
-    else:
-
-        project_mean_lot.loc['Итог по месяцам'] = [df_filtered[df_filtered['Дата'] == date]['Оценка цены'].mean() for date in sorted(df_filtered['Дата'].unique())]
-        project_mean_lot['Общий итог'] = [df_filtered[df_filtered['Тип Комнатности'] == apart]['Оценка цены'].mean() for apart in sorted(df_filtered['Тип Комнатности'].dropna().unique())] + [df_filtered['Оценка цены'].mean()]
-
-        project_mean_lot.fillna(0, inplace=True)
-        project_mean_lot = project_mean_lot / 10 ** 6
-        #project_mean_lot.rename(columns=month_map, inplace=True)
-        project_mean_lot = round(project_mean_lot, 1)
-        project_mean_lot.replace(0, '', inplace=True)
-        return project_mean_lot
-
-
-# Итоговая таблица ГОТОВО
-def get_main(ap_types):
-    main_df = pd.DataFrame(columns=['Название проекта',
-                                    'Количество зарегистрированных ДДУ, шт.',
-                                    'Средняя площадь, м²',
-                                    'Средняя стоимость м², тыс. руб.',
-                                    'Средняя стоимость одного лота, млн руб.'])
-
-    main_df['Название проекта'] = proj
-    main_df['Количество зарегистрированных ДДУ, шт.'] = [get_ddu(name, apart_type)['Общий итог'].loc['Итог по месяцам'] for name in proj]
-    main_df['Средняя площадь, м²'] = [get_mean_square(name, apart_type)['Общий итог'].loc['Итог по месяцам'] for name in proj]
-    main_df['Средняя стоимость м², тыс. руб.'] = [get_mean_m2(name, apart_type)['Общий итог'].loc['Итог по месяцам'] for name in proj]
-    main_df['Средняя стоимость одного лота, млн руб.'] = [get_mean_lot(name, apart_type)['Общий итог'].loc['Итог по месяцам'] for name in proj]
-    main_df = main_df.set_index('Название проекта').replace('', '0').astype(float).round(1)
-
-    df_filtered = df[(df['ЖК_рус'].isin(proj)) &
-                     (df['Тип помещения'].isin(ap_types)) &
-                     (df['Дата регистрации'] >= time_min) &
-                     (df['Дата регистрации'] <= time_max)]
-
-    global main_df_result
-
-    main_df_result = pd.DataFrame(dict(zip(list(main_df.columns), [[int(main_df['Количество зарегистрированных ДДУ, шт.'].sum())], # итоговое количество ДДУ
-                                        [df_filtered[df_filtered['Тип Комнатности'].notna()]['Площадь'].mean()], # итоговая средняя площадь
-                                        [int(df_filtered[df_filtered['Тип Комнатности'].notna()]['Оценка цены'].sum() /
-                                        df_filtered[df_filtered['Тип Комнатности'].notna()]['Площадь'].sum() / 1000)], # итоговая сред. стоимость м2
-                                        [df_filtered[df_filtered['Тип Комнатности'].notna()]['Оценка цены'].mean() / 10 ** 6]])))  # итоговая средняя цена лота
-
-
-    main_df['Количество зарегистрированных ДДУ, шт.'] = main_df['Количество зарегистрированных ДДУ, шт.'].apply(int)
-    main_df['Средняя стоимость м², тыс. руб.'] = main_df['Средняя стоимость м², тыс. руб.'].apply(round)
-
-    return main_df
-
-
-# Итоговые значения по итоговой таблице
-@st.cache_data
-def get_main_results():
-    a = sum(get_main(apart_type)['Количество зарегистрированных ДДУ, шт.'] * get_main(apart_type)['Средняя стоимость одного лота, млн руб.'])
-    b = sum(get_main(apart_type)['Количество зарегистрированных ДДУ, шт.'] * get_main(apart_type)['Средняя площадь, м²'])
-    mean_m2 = a/b * 1000
-
-    ddu = sum(get_main(apart_type)['Количество зарегистрированных ДДУ, шт.'])
-
-    mean_square = b / ddu
-
-    mean_lot = a / ddu
-
-    return {'Количество зарегистрированных ДДУ, шт.': round(ddu),
-            'Средняя площадь, м²': round(mean_square, 1),
-            'Средняя стоимость м², тыс. руб.': round(mean_m2),
-            'Средняя стоимость одного лота, млн руб.': round(mean_lot, 1)}
-
-
-# Загрузка xlsx-файла
-@st.cache_data
-def download_dataframe_xlsx(x):
-    with st.spinner('Загрузка файла...'):
-        x.to_excel(f"Экспозиция с {str(df1['Дата актуализации'].min())[:-9][-2:]}-{str(df1['Дата актуализации'].min())[:-9][-5:-3]}-{str(df1['Дата актуализации'].min())[:-9][-10:-6]} по {str(df1['Дата актуализации'].max())[:-9][-2:]}-{str(df1['Дата актуализации'].max())[:-9][-5:-3]}-{str(df1['Дата актуализации'].max())[:-9][-10:-6]}.xlsx", index=False)
-        st.success('Файл успешно скачан')
-
-
-
-
-# ПОЛЗУНКИ
 st.sidebar.image('https://nikoliers.ru/assets/img/nikoliers_logo.png', width=230)
 
 st.sidebar.markdown("&nbsp;")
 
-option = st.sidebar.radio('**Выберите опцию**:', ('Анализ спроса', 'Анализ предложения'), index=None)
+
+
+
+
+
+with st.sidebar:
+    option = option_menu('Выбор опции:', ['Анализ спроса', 'Анализ предложения'], icons=[' ', ' '], menu_icon='building-check', default_index=0)
+
+
+#option = st.sidebar.radio('**Выберите опцию**:', ('Анализ спроса', 'Анализ предложения'), index=0)
 
 st.sidebar.markdown("&nbsp;")
 
-
-proj_choice = st.sidebar.selectbox('**Выберите проект ED:**', proj_dict.keys(), index=None)
-
+proj_ed = st.sidebar.selectbox('**Выберите проект ED:**', proj_dict.keys(), index=None)
 
 
 
+if option == 'Анализ спроса':
+    df = load_realty_sold()
+    if proj_ed:
+        proj = st.sidebar.multiselect('**Выберите проект:**', sorted(proj_dict[proj_ed]), default=sorted(proj_dict[proj_ed]))
+        df = df[df['ЖК_рус'].isin(proj)]
+        apart_type = st.sidebar.multiselect('**Выберите тип помещения:**', sorted(df['Тип помещения'].unique()))
+        df = df[df['Тип помещения'].isin(apart_type)]
+        df = df[(df['Дата регистрации'] >= time_min) & (df['Дата регистрации'] <= time_max)]
+    else:
+        proj = st.sidebar.multiselect('**Выберите проект:**', sorted(df['ЖК_рус'].unique()))
+        df = df[df['ЖК_рус'].isin(proj)]
+        apart_type = st.sidebar.multiselect('**Выберите тип помещения:**', sorted(df['Тип помещения'].unique()))
+        df = df[df['Тип помещения'].isin(apart_type)]
+        df = df[(df['Дата регистрации'] >= time_min) & (df['Дата регистрации'] <= time_max)]
 
 
+    def get_ddu(name):
+        project_ddu = df[df['ЖК_рус'] == name].pivot_table(
+            index='Тип Комнатности',
+            values='ЖК_рус',
+            columns=df['Дата'],
+            aggfunc='count')
+
+        if project_ddu.shape[0] == 0:
+            return get_dummy_df()
+        else:
+            project_ddu.fillna(0, inplace=True)
+            project_ddu = project_ddu.assign(total=project_ddu.sum(axis=1))
+            project_ddu.rename(columns={'total': 'Общий итог'}, inplace=True)
+            project_ddu.loc['Итог по месяцам'] = project_ddu.sum()
+            # project_ddu.rename(columns=month_map, inplace=True)
+            project_ddu = project_ddu.applymap(int)
+            project_ddu.replace(0, '', inplace=True)
+            return project_ddu  # .style.format(precision=0).apply(highlight_last_row_and_column)
+    def get_mean_m2(name):
+        project_mean_m2_price = df[df['ЖК_рус'] == name].pivot_table(
+            index='Тип Комнатности',
+            values='Оценка цены',
+            columns=df['Дата'],
+            aggfunc='sum')
+
+        project_mean_m2_price['Общий итог'] = project_mean_m2_price.sum(axis=1)
+
+        project_mean_m2_square = df[df['ЖК_рус'] == name].pivot_table(
+            index='Тип Комнатности',
+            values='Площадь',
+            columns=df['Дата'],
+            aggfunc='sum')
+
+        project_mean_m2_square['Общий итог'] = project_mean_m2_square.sum(axis=1)
+
+        if project_mean_m2_price.shape[0] == 0:
+            return get_dummy_df()
+            # return st.write('<h6>Невозможно составить таблицу с заданными фильтрами</h6>', unsafe_allow_html=True)
+        else:
+            new_mean_m2 = project_mean_m2_price / project_mean_m2_square / 1000
+            # new_mean_m2['Общий итог'] = project_mean_m2_price.sum(axis=1) / project_mean_m2_square.sum(axis=1) / 1000
+            new_mean_m2.loc['Итог по месяцам'] = project_mean_m2_price.sum(axis=0) / project_mean_m2_square.sum(axis=0) / 1000
+            # new_mean_m2.loc['Итог по месяцам'] = new_mean_m2.sum(axis=0)
+            new_mean_m2.fillna(0, inplace=True)
+            # new_mean_m2.rename(columns=month_map, inplace=True)
+            new_mean_m2 = new_mean_m2.applymap(round)
+            new_mean_m2.replace(0, '', inplace=True)
+            return new_mean_m2  # .style.format(precision=0).apply(highlight_last_row_and_column)
+    def get_mean_square(name):
+        project_mean_square = df[df['ЖК_рус'] == name].pivot_table(
+            index='Тип Комнатности',
+            values='Площадь',
+            columns=df['Дата'],
+            aggfunc='mean')
+
+        df_filtered = df[df['ЖК_рус'] == name]
+
+        if project_mean_square.shape[0] == 0:
+            return get_dummy_df()
+            # return st.write('<h6>Невозможно составить таблицу с заданными фильтрами</h6>', unsafe_allow_html=True)
+        else:
+            project_mean_square.loc['Итог по месяцам'] = [df_filtered[df_filtered['Дата'] == date]['Площадь'].mean() for date in sorted(df_filtered['Дата'].unique())]
+            project_mean_square['Общий итог'] = [df_filtered[df_filtered['Тип Комнатности'] == apart]['Площадь'].mean() for apart in sorted(df_filtered['Тип Комнатности'].dropna().unique())] + [df_filtered['Площадь'].mean()]
+
+            project_mean_square = round(project_mean_square, 1)
+            project_mean_square.fillna(0, inplace=True)
+            project_mean_square.replace(0, '', inplace=True)
+            return project_mean_square
+    def get_mean_lot(name):
+        project_mean_lot = df[df['ЖК_рус'] == name].pivot_table(
+            index='Тип Комнатности',
+            values='Оценка цены',
+            columns=df['Дата'],
+            aggfunc='mean')
+
+        df_filtered = df[df['ЖК_рус'] == name]
+
+        if project_mean_lot.shape[0] == 0:
+            return get_dummy_df()
+            # return st.write('<h6>Невозможно составить таблицу с заданными фильтрами</h6>', unsafe_allow_html=True)
+        else:
+
+            project_mean_lot.loc['Итог по месяцам'] = [df_filtered[df_filtered['Дата'] == date]['Оценка цены'].mean() for date in sorted(df_filtered['Дата'].unique())]
+            project_mean_lot['Общий итог'] = [df_filtered[df_filtered['Тип Комнатности'] == apart]['Оценка цены'].mean() for apart in sorted(df_filtered['Тип Комнатности'].dropna().unique())] + [df_filtered['Оценка цены'].mean()]
+
+            project_mean_lot.fillna(0, inplace=True)
+            project_mean_lot = project_mean_lot / 10 ** 6
+            # project_mean_lot.rename(columns=month_map, inplace=True)
+            project_mean_lot = round(project_mean_lot, 1)
+            project_mean_lot.replace(0, '', inplace=True)
+            return project_mean_lot
+    def get_main():
+        main_df = pd.DataFrame(columns=['Название проекта',
+                                        'Количество зарегистрированных ДДУ, шт.',
+                                        'Средняя площадь, м²',
+                                        'Средняя стоимость м², тыс. руб.',
+                                        'Средняя стоимость одного лота, млн руб.'])
+
+        main_df['Название проекта'] = proj
+        main_df['Количество зарегистрированных ДДУ, шт.'] = [get_ddu(name)['Общий итог'].loc['Итог по месяцам'] for name in proj]
+        main_df['Средняя площадь, м²'] = [get_mean_square(name)['Общий итог'].loc['Итог по месяцам'] for name in proj]
+        main_df['Средняя стоимость м², тыс. руб.'] = [get_mean_m2(name)['Общий итог'].loc['Итог по месяцам'] for name in proj]
+        main_df['Средняя стоимость одного лота, млн руб.'] = [get_mean_lot(name)['Общий итог'].loc['Итог по месяцам'] for name in proj]
+
+        main_df = main_df.set_index('Название проекта').replace('', '0').astype(float).round(1)
+        main_df['Количество зарегистрированных ДДУ, шт.'] = main_df['Количество зарегистрированных ДДУ, шт.'].apply(int)
+        main_df['Средняя стоимость м², тыс. руб.'] = main_df['Средняя стоимость м², тыс. руб.'].apply(round)
 
 
-if option == 'Анализ спроса' and proj_choice:
+        a = sum(main_df['Количество зарегистрированных ДДУ, шт.'] * main_df['Средняя стоимость одного лота, млн руб.'])
+        b = sum(main_df['Количество зарегистрированных ДДУ, шт.'] * main_df['Средняя площадь, м²'])
 
-    proj = st.sidebar.multiselect('**Выберите проект**:',
-                                  options=sorted(proj_dict[proj_choice]), default=sorted(proj_dict[proj_choice]))
-
-    apart_type = st.sidebar.multiselect('**Выберите тип помещения**:',
-                                        options=df[df['ЖК_рус'].isin(proj)]['Тип помещения'].unique())
-
-if option == 'Анализ предложения' and proj_choice:
-
-    proj_new = st.sidebar.multiselect('**Выберите проект**:',
-                                  options=sorted(proj_dict[proj_choice]), default=sorted(proj_dict[proj_choice]))
-
-    apart_type_new = st.sidebar.multiselect('**Выберите тип помещения**:',
-                                        options=sorted(df1[df1['ЖК_рус'].isin(proj_new)]['Тип помещения'].unique()))
-
-if option == 'Анализ спроса' and not proj_choice:
-
-    proj = st.sidebar.multiselect('**Выберите проект**:',
-                                  options=sorted(projects))
-
-    apart_type = st.sidebar.multiselect('**Выберите тип помещения**:',
-                                        options=sorted(df[df['ЖК_рус'].isin(proj)]['Тип помещения'].unique()))
-
-if option == 'Анализ предложения' and not proj_choice:
-
-    proj_new = st.sidebar.multiselect('**Выберите проект**:',
-                                      options=sorted(projects_new))
-    apart_type_new = st.sidebar.multiselect('**Выберите тип помещения**:',
-                                            options=sorted(df1[df1['ЖК_рус'].isin(proj_new)]['Тип помещения'].unique()))
+        mean_m2 = a / b * 1000
+        ddu = sum(main_df['Количество зарегистрированных ДДУ, шт.'])
+        mean_square = b / ddu
+        mean_lot = a / ddu
 
 
+        return main_df, ddu, mean_square, mean_m2, mean_lot
 
 
-#st.sidebar.markdown("&nbsp;")
+    if len(proj) * len(apart_type) != 0:
+        st.write('<h4> Итоговая таблица по проектам:</h4>', unsafe_allow_html=True)
+        main_filter = st.selectbox('**Выберите показатель для фильтрации итоговой таблицы:**',
+                                   ['Количество зарегистрированных ДДУ, шт.', 'Средняя площадь, м²', 'Средняя стоимость м², тыс. руб.', 'Средняя стоимость одного лота, млн руб.'],
+                                   index=0)
 
-
-
-
-if option == 'Анализ спроса' and (len(proj) * len(apart_type) != 0):
-    main_filter = st.selectbox('**Выберите показатель для фильтрации итоговой таблицы:**', get_main(apart_type).columns, index=0)
-    st.markdown("&nbsp;")
-    st.write('<h4> Итоговая таблица по проектам:</h4>', unsafe_allow_html=True)
-    st.write(get_main(apart_type).sort_values(by=main_filter, ascending=False).reset_index().style.format(precision=1).to_html(), unsafe_allow_html=True)
-    st.markdown("&nbsp;")
-
-    #st.write(main_df_result.style.format(precision=1).apply(highlight_last_row).to_html(), unsafe_allow_html=True)
-    #st.markdown("&nbsp;")
-
-
-    col1, col2, col3, col4 = st.columns(4)
-    columns = [col1, col2, col3, col4]
-    for col in columns:
-        with col:
-            st.metric(f"**{list(get_main_results().keys())[columns.index(col)]}**",
-                      list(get_main_results().values())[columns.index(col)])
-
-    #st.dataframe(get_main(apart_type).style.format(precision=1).apply(highlight_last_row), height=39*(len(proj)+2))
-    st.markdown("&nbsp;")
-    st.markdown("---")
-    st.markdown("&nbsp;")
-
-    for project in proj:
-
-        st.markdown(f'<h4> 🏢 {project}</h4>', unsafe_allow_html=True)
-        col1, col2 = st.columns(2)
-        with col1:
-            st.write('<h5> 1️⃣ Количество зарегистрированных ДДУ, шт.</h5>', unsafe_allow_html=True)
-            st.dataframe(get_ddu(project, apart_type).style.format(precision=0).apply(highlight_last_row_and_column))
-            st.markdown("&nbsp;")
-        with col2:
-            st.write('<h5> 2️⃣ Средняя площадь, м²</h5>', unsafe_allow_html=True)
-            st.dataframe(get_mean_square(project, apart_type).style.format(precision=1).apply(highlight_last_row_and_column))
-            st.markdown("&nbsp;")
-        with col1:
-            st.write('<h5> 3️⃣ Средняя стоимость м², тыс. руб.</h5>', unsafe_allow_html=True)
-            st.dataframe(get_mean_m2(project, apart_type).style.format(precision=0).apply(highlight_last_row_and_column))
-        with col2:
-            st.write('<h5> 4️⃣ Средняя стоимость одного лота, млн руб.</h5>', unsafe_allow_html=True)
-            st.dataframe(get_mean_lot(project, apart_type).style.format(precision=1).apply(highlight_last_row_and_column))
+        st.write(get_main()[0].sort_values(by=main_filter, ascending=False).reset_index().style.format(precision=1).to_html(), unsafe_allow_html=True)
         st.markdown("&nbsp;")
+        st.subheader('Итоговые метрики:')
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric(f"**Количество зарегистрированных ДДУ, шт.**", get_main()[1])
+        with col2:
+            st.metric(f"**Средняя площадь, м²**", round(get_main()[2], 1))
+        with col3:
+            st.metric(f"**Средняя стоимость м², тыс. руб.**", int(get_main()[3]))
+        with col4:
+            st.metric(f"**Средняя стоимость одного лота, млн руб.**", round(get_main()[4],1))
         st.markdown('---')
         st.markdown("&nbsp;")
 
+    if len(proj) * len(apart_type) != 0:
+        for project in proj:
 
-if option == 'Анализ предложения' and (len(proj_new) * len(apart_type_new) != 0):
-    result = []
-    final_list = []
-    # final_proj = []
-    original_list = []
+            st.markdown(f'<h4> 🏢 {project}</h4>', unsafe_allow_html=True)
+            col1, col2 = st.columns(2)
+            with col1:
+                st.write('<h5> 1️⃣ Количество зарегистрированных ДДУ, шт.</h5>', unsafe_allow_html=True)
+                st.write(get_ddu(project).style.format(precision=0).apply(highlight_last_row_and_column))
+                st.markdown("&nbsp;")
+            with col2:
+                st.write('<h5> 2️⃣ Средняя площадь, м²</h5>', unsafe_allow_html=True)
+                st.write(get_mean_square(project).style.format(precision=1).apply(highlight_last_row_and_column))
+                st.markdown("&nbsp;")
+            with col1:
+                st.write('<h5> 3️⃣ Средняя стоимость м², тыс. руб.</h5>', unsafe_allow_html=True)
+                st.write(get_mean_m2(project).style.format(precision=0).apply(highlight_last_row_and_column))
+            with col2:
+                st.write('<h5> 4️⃣ Средняя стоимость одного лота, млн руб.</h5>', unsafe_allow_html=True)
+                st.write(get_mean_lot(project).style.format(precision=1).apply(highlight_last_row_and_column))
+            st.markdown("&nbsp;")
+            st.markdown('---')
 
-    df_filtered = df1[df1['Тип помещения'].isin(proj_new)]
 
-    dummy_exp_df = pd.DataFrame()
-    dummy_exp_df['Комнат'] = sorted(df_filtered['Комнат'].unique())
-    dummy_exp_df['Сред. цена м², тыс. р.'] = [''] * len(sorted(df_filtered['Комнат'].unique()))
-    dummy_exp_df.set_index('Комнат', inplace=True)
-
-    for project in proj_new:
-
-        df_filtered = df1[(df1['ЖК_рус'] == project) &
-                          (df1['Тип помещения'].isin(apart_type_new))]
-
-        if (df_filtered['Комнат'].isnull().sum() == df_filtered.shape[0]) or (
-                df_filtered['Площадь'].isnull().sum() == df_filtered.shape[0]) or (
-                df_filtered['Цена'].isnull().sum() == df_filtered.shape[0]):
-            pass
-
-        else:
-
-            # final_proj.append(project)
-
-            pivot_1 = df_filtered.pivot_table(
-                index='Комнат',
-                values='ЖК_рус',
-                aggfunc='count')
-            pivot_1.rename(columns={'ЖК_рус': 'Кол-во, шт.'}, inplace=True)
-
-            pivot_2 = df_filtered.pivot_table(
-                index='Комнат',
-                values='Площадь',
-                aggfunc='mean')
-            pivot_2.rename(columns={'Площадь': 'Сред. площадь, м²'}, inplace=True)
-            pivot_2 = pivot_2.round(1)
-
-            pivot_3 = df_filtered.pivot_table(
-                index='Комнат',
-                values='Цена',
-                aggfunc='min')
-            pivot_3 = pivot_3 / 10 ** 6
-            pivot_3.rename(columns={'Цена': 'Мин. цена, млн р.'}, inplace=True)
-            pivot_3 = pivot_3.round(1)
-
-            pivot_4 = df_filtered.pivot_table(
-                index='Комнат',
-                values='Цена',
-                aggfunc='max')
-            pivot_4 = pivot_4 / 10 ** 6
-            pivot_4.rename(columns={'Цена': 'Макс. цена, млн р.'}, inplace=True)
-            pivot_4 = pivot_4.round(1)
-
-            pivot_5 = df_filtered.pivot_table(
-                index='Комнат',
-                values='Цена',
-                aggfunc='mean')
-            pivot_5 = pivot_5 / 10 ** 6
-            pivot_5.rename(columns={'Цена': 'Сред. цена, млн р.'}, inplace=True)
-            pivot_5 = pivot_5.round(1)
-
-            pivot_6 = df_filtered.pivot_table(
-                index='Комнат',
-                values='Цена кв м',
-                aggfunc='min')
-            pivot_6 = pivot_6 / 1000
-            pivot_6.rename(columns={'Цена кв м': 'Мин. цена м², тыс. р.'}, inplace=True)
-            pivot_6 = pivot_6.applymap(round)
-
-            pivot_7 = df_filtered.pivot_table(
-                index='Комнат',
-                values='Цена кв м',
-                aggfunc='max')
-            pivot_7 = pivot_7 / 1000
-            pivot_7.rename(columns={'Цена кв м': 'Макс. цена м², тыс. р.'}, inplace=True)
-            pivot_7 = pivot_7.applymap(round)
-
-            pivot_8 = pd.DataFrame()
-            pivot_8['Тип Комнатности'] = df_filtered.pivot_table(index='Комнат', values='Цена', aggfunc='sum').index
-            pivot_8['Сред. цена м², тыс. р.'] = df_filtered.pivot_table(index='Комнат', values='Цена',
-                                                                        aggfunc='sum').values / df_filtered.pivot_table(
-                index='Комнат', values='Площадь', aggfunc='sum').values
-            pivot_8['Сред. цена м², тыс. р.'] = pivot_8['Сред. цена м², тыс. р.'] / 1000
-            pivot_8.set_index('Тип Комнатности', inplace=True)
-            pivot_8 = pivot_8.applymap(round)
-
-            df_test = pd.concat([pivot_1, pivot_2, pivot_3, pivot_4, pivot_5, pivot_6, pivot_7, pivot_8], axis=1)
-            original_list.extend([project] + [''] * (df_test.shape[0] - 1))
-            # df_test = df_test.set_index(pd.Index([project] + [''] * (df_test.shape[0]-1)))
-            result.append(df_test)
-
-    # for sublist in original_list:
-    #   final_list.extend(sublist)
-
-    final_exp = pd.concat(result).reset_index()
-    final_exp = final_exp.set_index(pd.Index(original_list))
-    final_exp = final_exp.rename(columns={"index": "Тип Комнатности"})
-    #final_exp = final_exp.to_html()
-    st.write(final_exp.to_html(), unsafe_allow_html=True)
-
+if option == 'Анализ предложения':
+    df = load_new_history()
     st.markdown("&nbsp;")
+    if proj_ed:
+        proj = st.sidebar.multiselect('**Выберите проект:**', sorted(proj_dict[proj_ed]), default=sorted(proj_dict[proj_ed]))
+        df = df[df['ЖК_рус'].isin(proj)]
+        apart_type = st.sidebar.multiselect('**Выберите тип помещения:**', sorted(df['Тип помещения'].unique()))
+        df = df[df['Тип помещения'].isin(apart_type)]
+    else:
+        proj = st.sidebar.multiselect('**Выберите проект:**', sorted(df['ЖК_рус'].unique()))
+        df = df[df['ЖК_рус'].isin(proj)]
+        apart_type = st.sidebar.multiselect('**Выберите тип помещения:**', sorted(df['Тип помещения'].unique()))
+        df = df[df['Тип помещения'].isin(apart_type)]
 
-    download = st.button('Загрузить в формате .xlsx',
-                         help=f'Таблица составлена за период с {str(df1["Дата актуализации"].min())[:-9]} по {str(df1["Дата актуализации"].max())[:-9]}')
-    if download:
-        download_dataframe_xlsx(final_exp)
+    if len(proj) * len(apart_type) != 0:
+
+        result = []
+        final_list = []
+        original_list = []
+
+        df_filtered = df[df['Тип помещения'].isin(proj)]
+
+        dummy_exp_df = pd.DataFrame()
+        dummy_exp_df['Комнат'] = sorted(df_filtered['Комнат'].unique())
+        dummy_exp_df['Сред. цена м², тыс. р.'] = [''] * len(sorted(df_filtered['Комнат'].unique()))
+        dummy_exp_df.set_index('Комнат', inplace=True)
+
+        for project in proj:
+
+            df_filtered = df[(df['ЖК_рус'] == project) &
+                              (df['Тип помещения'].isin(apart_type))]
+
+            if (df_filtered['Комнат'].isnull().sum() == df_filtered.shape[0]) or (
+                    df_filtered['Площадь'].isnull().sum() == df_filtered.shape[0]) or (
+                    df_filtered['Цена'].isnull().sum() == df_filtered.shape[0]):
+                pass
+
+            else:
+
+                pivot_1 = df_filtered.pivot_table(
+                    index='Комнат',
+                    values='ЖК_рус',
+                    aggfunc='count')
+                pivot_1.rename(columns={'ЖК_рус': 'Кол-во, шт.'}, inplace=True)
+
+                pivot_2 = df_filtered.pivot_table(
+                    index='Комнат',
+                    values='Площадь',
+                    aggfunc='mean')
+                pivot_2.rename(columns={'Площадь': 'Сред. площадь, м²'}, inplace=True)
+                pivot_2 = pivot_2.round(1)
+
+                pivot_3 = df_filtered.pivot_table(
+                    index='Комнат',
+                    values='Цена',
+                    aggfunc='min')
+                pivot_3 = pivot_3 / 10 ** 6
+                pivot_3.rename(columns={'Цена': 'Мин. цена, млн р.'}, inplace=True)
+                pivot_3 = pivot_3.round(1)
+
+                pivot_4 = df_filtered.pivot_table(
+                    index='Комнат',
+                    values='Цена',
+                    aggfunc='max')
+                pivot_4 = pivot_4 / 10 ** 6
+                pivot_4.rename(columns={'Цена': 'Макс. цена, млн р.'}, inplace=True)
+                pivot_4 = pivot_4.round(1)
+
+                pivot_5 = df_filtered.pivot_table(
+                    index='Комнат',
+                    values='Цена',
+                    aggfunc='mean')
+                pivot_5 = pivot_5 / 10 ** 6
+                pivot_5.rename(columns={'Цена': 'Сред. цена, млн р.'}, inplace=True)
+                pivot_5 = pivot_5.round(1)
+
+                pivot_6 = df_filtered.pivot_table(
+                    index='Комнат',
+                    values='Цена кв м',
+                    aggfunc='min')
+                pivot_6 = pivot_6 / 1000
+                pivot_6.rename(columns={'Цена кв м': 'Мин. цена м², тыс. р.'}, inplace=True)
+                pivot_6 = pivot_6.applymap(round)
+
+                pivot_7 = df_filtered.pivot_table(
+                    index='Комнат',
+                    values='Цена кв м',
+                    aggfunc='max')
+                pivot_7 = pivot_7 / 1000
+                pivot_7.rename(columns={'Цена кв м': 'Макс. цена м², тыс. р.'}, inplace=True)
+                pivot_7 = pivot_7.applymap(round)
+
+                pivot_8 = pd.DataFrame()
+                pivot_8['Тип Комнатности'] = df_filtered.pivot_table(index='Комнат', values='Цена', aggfunc='sum').index
+                pivot_8['Сред. цена м², тыс. р.'] = df_filtered.pivot_table(index='Комнат', values='Цена', aggfunc='sum').values / df_filtered.pivot_table(index='Комнат', values='Площадь', aggfunc='sum').values
+                pivot_8['Сред. цена м², тыс. р.'] = pivot_8['Сред. цена м², тыс. р.'] / 1000
+                pivot_8.set_index('Тип Комнатности', inplace=True)
+                pivot_8 = pivot_8.applymap(round)
+
+                df_test = pd.concat([pivot_1, pivot_2, pivot_3, pivot_4, pivot_5, pivot_6, pivot_7, pivot_8], axis=1)
+                original_list.extend([project] + [''] * (df_test.shape[0] - 1))
+                result.append(df_test)
+
+
+        final_exp = pd.concat(result).reset_index()
+        final_exp = final_exp.set_index(pd.Index(original_list))
+        final_exp = final_exp.rename(columns={"index": "Тип Комнатности"})
+        st.write(final_exp.to_html(), unsafe_allow_html=True)
+
+        st.markdown("&nbsp;")
+
+        download = st.button('Загрузить в формате .xlsx',
+                             help=f'Таблица составлена за период с {str(df["Дата актуализации"].min())[:-9]} по {str(df["Дата актуализации"].max())[:-9]}')
+        if download:
+            download_dataframe_xlsx(final_exp)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
