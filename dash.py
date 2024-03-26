@@ -2,8 +2,12 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 from streamlit_option_menu import option_menu
+import time
 
 # ПАРАМЕТРЫ СТРАНИЦЫ
+
+
+
 st.set_page_config(page_title='Nikoliers · Конкурентный обзор',
                   page_icon='https://nikoliers.ru/favicon.ico',
                   layout='wide')
@@ -11,11 +15,9 @@ st.markdown('<style>div.block-container{padding-top:1rem;}</style>', unsafe_allo
 
 
 
-
-
-
-
 # ЗАГРУЗКА ДАННЫХ
+
+
 
 # REALTY_SOLD
 @st.cache_data()
@@ -42,6 +44,8 @@ def load_new_history():
 
 # ОПРЕДЕЛЕНИЕ ВТОРОСТЕПЕННЫХ ФУНКЦИЙ
 
+
+
 # ПУСТАЯ ТАБЛИЦА
 @st.cache_data
 def get_dummy_df():
@@ -64,8 +68,6 @@ def download_dataframe_xlsx(x):
 
 
 
-
-
 # ПРОЕКТЫ ELEMENT DEVELOPMENT
 proj_dict = {"Берег Курортный": [#'Глоракс Балтийская',
                                  'Глоракс Василеостровский', 'Глоракс Премиум Василеостровский',
@@ -85,12 +87,12 @@ proj_dict = {"Берег Курортный": [#'Глоракс Балтийск
                                          'Резиденция на Малой Невке', 'Три грации', 'Северная корона']}
 
 
+# ВТОРОСТЕПЕННЫЕ СЛОВАРИ/СПИСКИ
 
 
-
-
-
-
+months = {'январь': 1, 'февраль': 2, 'март': 3, 'апрель': 4,
+          'май': 5, 'июнь': 6, 'июль': 7, 'август': 8,
+          'сентябрь': 9, 'октябрь': 10, 'ноябрь': 11, 'декабрь': 12}
 
 
 
@@ -102,18 +104,20 @@ st.title("Nikoliers · Конкурентный обзор")
 
 
 
-col1, col2 = st.columns(2)
-with col1:
-    time_min = pd.to_datetime(st.date_input("\U0001f5d3\ufe0f **Выберите начальную дату:**",
-                                            value=pd.to_datetime('2023-01-01 00:00:00')))
-with col2:
-    time_max = pd.to_datetime(st.date_input("\U0001f5d3\ufe0f **Выберите конечную дату:**",
-                                            value=pd.to_datetime('2023-12-31 00:00:00')))
+#col1, col2 = st.columns(2)
+#with col1:
+#    time_min = pd.to_datetime(st.date_input("\U0001f5d3\ufe0f **Выберите начальную дату:**",
+#                                            value=pd.to_datetime('2023-01-01 00:00:00')))
+#with col2:
+#    time_max = pd.to_datetime(st.date_input("\U0001f5d3\ufe0f **Выберите конечную дату:**",
+#                                            value=pd.to_datetime('2023-12-31 00:00:00')))
 
 
 
 
-st.sidebar.image('https://nikoliers.ru/assets/img/nikoliers_logo.png', width=230)
+
+
+st.sidebar.image('https://nikoliers.ru/assets/img/nikoliers_logo.png')
 
 st.sidebar.markdown("&nbsp;")
 
@@ -135,19 +139,31 @@ proj_ed = st.sidebar.selectbox('**Выберите проект ED:**', proj_dic
 
 
 if option == 'Анализ спроса':
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        year = st.selectbox('**:spiral_calendar_pad:Выберите год**',
+                            sorted(list(map(int, load_realty_sold()['Дата регистрации'].dt.year.dropna().unique())),
+                                   reverse=True),
+                            index=0)
+    with col2:
+        month_min = st.selectbox('**:spiral_calendar_pad:Выберите начальный месяц**', months.keys())
+    with col3:
+        month_max = st.selectbox('**:spiral_calendar_pad:Выберите конечный месяц**', months.keys())
+
+    st.markdown("&nbsp;")
     df = load_realty_sold()
     if proj_ed:
         proj = st.sidebar.multiselect('**Выберите проект:**', sorted(proj_dict[proj_ed]), default=sorted(proj_dict[proj_ed]))
         df = df[df['ЖК_рус'].isin(proj)]
         apart_type = st.sidebar.multiselect('**Выберите тип помещения:**', sorted(df['Тип помещения'].unique()))
         df = df[df['Тип помещения'].isin(apart_type)]
-        df = df[(df['Дата регистрации'] >= time_min) & (df['Дата регистрации'] <= time_max)]
+        df = df[(df['Дата регистрации'].dt.year == year) & (df['Дата регистрации'].dt.month >= months[month_min]) & ((df['Дата регистрации'].dt.month <= months[month_max]))]
     else:
         proj = st.sidebar.multiselect('**Выберите проект:**', sorted(df['ЖК_рус'].unique()))
         df = df[df['ЖК_рус'].isin(proj)]
         apart_type = st.sidebar.multiselect('**Выберите тип помещения:**', sorted(df['Тип помещения'].unique()))
         df = df[df['Тип помещения'].isin(apart_type)]
-        df = df[(df['Дата регистрации'] >= time_min) & (df['Дата регистрации'] <= time_max)]
+        df = df[(df['Дата регистрации'].dt.year == year) & (df['Дата регистрации'].dt.month >= months[month_min]) & ((df['Дата регистрации'].dt.month <= months[month_max]))]
 
 
     def get_ddu(name):
@@ -262,13 +278,14 @@ if option == 'Анализ спроса':
         a = sum(main_df['Количество зарегистрированных ДДУ, шт.'] * main_df['Средняя стоимость одного лота, млн руб.'])
         b = sum(main_df['Количество зарегистрированных ДДУ, шт.'] * main_df['Средняя площадь, м²'])
 
-        mean_m2 = a / b * 1000
-        ddu = sum(main_df['Количество зарегистрированных ДДУ, шт.'])
-        mean_square = b / ddu
-        mean_lot = a / ddu
-
-
-        return main_df, ddu, mean_square, mean_m2, mean_lot
+        if b != 0 and sum(main_df['Количество зарегистрированных ДДУ, шт.']) != 0:
+            mean_m2 = a / b * 1000
+            ddu = sum(main_df['Количество зарегистрированных ДДУ, шт.'])
+            mean_square = b / ddu
+            mean_lot = a / ddu
+            return main_df, ddu, mean_square, mean_m2, mean_lot
+        else:
+            return main_df, 0, np.nan, np.nan, np.nan
 
 
     if len(proj) * len(apart_type) != 0:
@@ -286,7 +303,7 @@ if option == 'Анализ спроса':
         with col2:
             st.metric(f"**Средняя площадь, м²**", round(get_main()[2], 1))
         with col3:
-            st.metric(f"**Средняя стоимость м², тыс. руб.**", int(get_main()[3]))
+            st.metric(f"**Средняя стоимость м², тыс. руб.**", '{:.0f}'.format(get_main()[3]))
         with col4:
             st.metric(f"**Средняя стоимость одного лота, млн руб.**", round(get_main()[4],1))
         st.markdown('---')
