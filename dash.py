@@ -13,8 +13,6 @@ st.set_page_config(page_title='Nikoliers · Конкурентный обзор'
                   layout='wide')
 st.markdown('<style>div.block-container{padding-top:1rem;}</style>', unsafe_allow_html=True)
 
-
-
 # ЗАГРУЗКА ДАННЫХ
 
 
@@ -102,32 +100,24 @@ months = {'январь': 1, 'февраль': 2, 'март': 3, 'апрель':
 
 st.title("Nikoliers · Конкурентный обзор")
 
-
-
-#col1, col2 = st.columns(2)
-#with col1:
-#    time_min = pd.to_datetime(st.date_input("\U0001f5d3\ufe0f **Выберите начальную дату:**",
-#                                            value=pd.to_datetime('2023-01-01 00:00:00')))
-#with col2:
-#    time_max = pd.to_datetime(st.date_input("\U0001f5d3\ufe0f **Выберите конечную дату:**",
-#                                            value=pd.to_datetime('2023-12-31 00:00:00')))
-
-
-
-
-
-
 st.sidebar.image('https://nikoliers.ru/assets/img/nikoliers_logo.png')
 
 st.sidebar.markdown("&nbsp;")
 
 
 
-
-
-
 with st.sidebar:
-    option = option_menu('Выбор опции:', ['Анализ спроса', 'Анализ предложения'], icons=[' ', ' '], menu_icon='building-check', default_index=0)
+    option = option_menu('Выбор опции:', ['Анализ спроса', 'Анализ предложения'], icons=[' ', ' '], menu_icon='building-check', default_index=0, styles={
+                "container": {"padding": "0!important", "background-color": "#F6F6F7"},
+                "nav-link": {
+                    "font-size": "16px",
+                    "text-align": "left",
+                    "margin": "0px",
+                    "--hover-color": "#EEEEEE",
+                },
+                "nav-link-selected": {"background-color": "#3250C0"},
+            },
+        )
 
 
 #option = st.sidebar.radio('**Выберите опцию**:', ('Анализ спроса', 'Анализ предложения'), index=0)
