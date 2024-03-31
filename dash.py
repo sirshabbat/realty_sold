@@ -82,7 +82,7 @@ def get_dummy_df():
 # ВЫДЕЛЕНИЕ ПОСЛЕДНЕГО СТОЛБЦА И ПОСЛЕДНЕЙ СТРОКИ ТАБЛИЦЫ
 @st.cache_data
 def highlight_last_row_and_column(s):
-    return ['background-color: #B1E2C0' if (i == (len(s) - 1) or s.name == 'Общий итог') else '' for i in range(len(s))]
+    return ['background-color: #B1E2C0' if (i == (len(s) - 1) or s.name == 'Общий итог') else '' for i in range(len(s))] # ещё хороший цвет: #82C4DE
 
 # ВЫГРУЗКА ТАБЛИЦЫ В XLSX
 @st.cache_data
@@ -90,6 +90,8 @@ def download_dataframe_xlsx(x):
     with st.spinner('Загрузка файла...'):
         x.to_excel(f"Экспозиция с {str(df['Дата актуализации'].min())[:-9][-2:]}-{str(df['Дата актуализации'].min())[:-9][-5:-3]}-{str(df['Дата актуализации'].min())[:-9][-10:-6]} по {str(df['Дата актуализации'].max())[:-9][-2:]}-{str(df['Дата актуализации'].max())[:-9][-5:-3]}-{str(df['Дата актуализации'].max())[:-9][-10:-6]}.xlsx", index=False)
         st.success('Файл успешно скачан')
+
+
 
 
 
@@ -119,9 +121,6 @@ proj_dict = {"Берег Курортный": [#'Глоракс Балтийск
 months = {'январь': 1, 'февраль': 2, 'март': 3, 'апрель': 4,
           'май': 5, 'июнь': 6, 'июль': 7, 'август': 8,
           'сентябрь': 9, 'октябрь': 10, 'ноябрь': 11, 'декабрь': 12}
-
-
-
 
 
 # ПОЛЗУНКИ / ФИЛЬТРЫ
@@ -231,7 +230,7 @@ if option == 'Анализ спроса':
             project_ddu.loc['Итог по месяцам'] = project_ddu.sum()
             # project_ddu.rename(columns=month_map, inplace=True)
             project_ddu = project_ddu.applymap(int)
-            project_ddu.replace(0, '', inplace=True)
+            #project_ddu.replace(0, '', inplace=True)
             return project_ddu  # .style.format(precision=0).apply(highlight_last_row_and_column)
     def get_mean_m2(name):
         project_mean_m2_price = df[df['ЖК_рус'] == name].pivot_table(
@@ -261,7 +260,7 @@ if option == 'Анализ спроса':
             new_mean_m2.fillna(0, inplace=True)
             # new_mean_m2.rename(columns=month_map, inplace=True)
             new_mean_m2 = new_mean_m2.applymap(round)
-            new_mean_m2.replace(0, '', inplace=True)
+            #new_mean_m2.replace(0, '', inplace=True)
             return new_mean_m2  # .style.format(precision=0).apply(highlight_last_row_and_column)
     def get_mean_square(name):
         project_mean_square = df[df['ЖК_рус'] == name].pivot_table(
@@ -281,7 +280,7 @@ if option == 'Анализ спроса':
 
             project_mean_square = round(project_mean_square, 1)
             project_mean_square.fillna(0, inplace=True)
-            project_mean_square.replace(0, '', inplace=True)
+            #project_mean_square.replace(0, '', inplace=True)
             return project_mean_square
     def get_mean_lot(name):
         project_mean_lot = df[df['ЖК_рус'] == name].pivot_table(
@@ -304,7 +303,7 @@ if option == 'Анализ спроса':
             project_mean_lot = project_mean_lot / 10 ** 6
             # project_mean_lot.rename(columns=month_map, inplace=True)
             project_mean_lot = round(project_mean_lot, 1)
-            project_mean_lot.replace(0, '', inplace=True)
+            #project_mean_lot.replace(0, '', inplace=True)
             return project_mean_lot
     def get_main():
         main_df = pd.DataFrame(columns=['Название проекта',
@@ -367,18 +366,18 @@ if option == 'Анализ спроса':
             col1, col2 = st.columns(2)
             with col1:
                 st.write('<h5> 1️⃣ Количество зарегистрированных ДДУ, шт.</h5>', unsafe_allow_html=True)
-                st.write(get_ddu(project).style.format(precision=0).apply(highlight_last_row_and_column))
+                st.write(get_ddu(project).replace(0, np.nan).style.format(precision=0).apply(highlight_last_row_and_column))
                 st.markdown("&nbsp;")
             with col2:
                 st.write('<h5> 2️⃣ Средняя площадь, м²</h5>', unsafe_allow_html=True)
-                st.write(get_mean_square(project).style.format(precision=1).apply(highlight_last_row_and_column))
+                st.write(get_mean_square(project).replace(0, np.nan).style.format(precision=1).apply(highlight_last_row_and_column))
                 st.markdown("&nbsp;")
             with col1:
                 st.write('<h5> 3️⃣ Средняя стоимость м², тыс. руб.</h5>', unsafe_allow_html=True)
-                st.write(get_mean_m2(project).style.format(precision=0).apply(highlight_last_row_and_column))
+                st.write(get_mean_m2(project).replace(0, np.nan).style.format(precision=0).apply(highlight_last_row_and_column))
             with col2:
                 st.write('<h5> 4️⃣ Средняя стоимость одного лота, млн руб.</h5>', unsafe_allow_html=True)
-                st.write(get_mean_lot(project).style.format(precision=1).apply(highlight_last_row_and_column))
+                st.write(get_mean_lot(project).replace(0, np.nan).style.format(precision=1).apply(highlight_last_row_and_column))
             st.markdown("&nbsp;")
             st.markdown('---')
 
