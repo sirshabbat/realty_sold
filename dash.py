@@ -17,9 +17,9 @@ st.markdown('<style>div.block-container{padding-top:1rem;}</style>', unsafe_allo
 
 
 
-# REALTY_SOLD
+# REALTY_SOLD SPB
 @st.cache_data()
-def load_realty_sold():
+def load_realty_sold_spb():
     df = pd.read_pickle('realty_sold_06032024_SPB_LO.gz')
     df = df[(df['Купил лотов в ЖК'].isin(np.arange(1, 6))) & (df['Покупатель ЮЛ'].isna())]  # лотов [1;5] + ЮЛ - NaN
     df = df.rename(columns={"ЖК рус": "ЖК_рус"})
@@ -30,14 +30,41 @@ def load_realty_sold():
     df['Дата'] = df['Дата регистрации'].dt.to_period('M')
     return df
 
-# NEW HISTORY
+# NEW HISTORY SPB
 @st.cache_data()
-def load_new_history():
+def load_new_history_spb():
     df1 = pd.read_pickle('new_history_04032024_SPB_LO.gz')
     df1 = df1.rename(columns={"ЖК рус": "ЖК_рус"})
     df1['Дата актуализации'] = pd.to_datetime(df1['Дата актуализации'])
     df1['Комнат'].dropna(inplace=True)
     return df1
+
+# REALTY_SOLD MOSCOW
+@st.cache_data()
+def load_realty_sold_moscow():
+    df = pd.read_pickle('realty_sold_06032024_M_MO_NM.gz')
+    df = df[(df['Купил лотов в ЖК'].isin(np.arange(1, 6))) & (df['Покупатель ЮЛ'].isna())]  # лотов [1;5] + ЮЛ - NaN
+    df = df.rename(columns={"ЖК рус": "ЖК_рус"})
+    df = df[df['Уступка'] == 0]  # уберём уступки
+    df['Цена_м2'] = df['Оценка цены'] / df['Площадь']
+    df['Тип Комнатности'].dropna(inplace=True)
+    df['Дата'] = df['Дата регистрации'].dt.to_period('M')
+    return df
+
+
+# NEW HISTORY MOSCOW
+@st.cache_data()
+def load_new_history_moscow():
+    df1 = pd.read_pickle('new_history_04032024.gz')
+    df1 = df1.rename(columns={"ЖК рус": "ЖК_рус"})
+    df1['Дата актуализации'] = pd.to_datetime(df1['Дата актуализации'])
+    df1['Комнат'].dropna(inplace=True)
+    return df1
+
+
+
+
+
 
 
 # ОПРЕДЕЛЕНИЕ ВТОРОСТЕПЕННЫХ ФУНКЦИЙ
@@ -63,6 +90,7 @@ def download_dataframe_xlsx(x):
     with st.spinner('Загрузка файла...'):
         x.to_excel(f"Экспозиция с {str(df['Дата актуализации'].min())[:-9][-2:]}-{str(df['Дата актуализации'].min())[:-9][-5:-3]}-{str(df['Дата актуализации'].min())[:-9][-10:-6]} по {str(df['Дата актуализации'].max())[:-9][-2:]}-{str(df['Дата актуализации'].max())[:-9][-5:-3]}-{str(df['Дата актуализации'].max())[:-9][-10:-6]}.xlsx", index=False)
         st.success('Файл успешно скачан')
+
 
 
 
@@ -107,24 +135,55 @@ st.sidebar.markdown("&nbsp;")
 
 
 with st.sidebar:
-    option = option_menu('Выбор опции:', ['Анализ спроса', 'Анализ предложения'], icons=[' ', ' '], menu_icon='building-check', default_index=0, styles={
+    city = option_menu('Выбор города:', ('Санкт-Петербург', 'Москва'), icons=[' ', ' '], menu_icon='building-check', default_index=0, styles={
+                    "container": {"padding": "0!important", "background-color": "#F6F6F7"},
+                    "nav-link": {
+                        "font-size": "15px",
+                        "text-align": "left",
+                        "margin": "0px",
+                        "--hover-color": "#EEEEEE",
+                    },
+                    "nav-link-selected": {"background-color": "#3250C0"},
+                })
+    option = option_menu('Выбор опции:', ['Анализ спроса', 'Анализ предложения'], icons=[' ', ' '], menu_icon='filter-right', default_index=0, styles={
                 "container": {"padding": "0!important", "background-color": "#F6F6F7"},
                 "nav-link": {
-                    "font-size": "16px",
+                    "font-size": "15px",
                     "text-align": "left",
                     "margin": "0px",
                     "--hover-color": "#EEEEEE",
                 },
                 "nav-link-selected": {"background-color": "#3250C0"},
-            },
-        )
+            })
+    st.sidebar.markdown("&nbsp;")
+
+
 
 
 #option = st.sidebar.radio('**Выберите опцию**:', ('Анализ спроса', 'Анализ предложения'), index=0)
 
-st.sidebar.markdown("&nbsp;")
+#st.sidebar.markdown("&nbsp;")
 
-proj_ed = st.sidebar.selectbox('**Выберите проект ED:**', proj_dict.keys(), index=None)
+
+
+if city == 'Санкт-Петербург':
+    df = load_realty_sold_spb()
+    df1 = load_new_history_spb()
+    proj_ed = st.sidebar.selectbox('**Выберите проект ED:**', proj_dict.keys(), index=None)
+
+else:
+    df = load_realty_sold_moscow()
+    df1 = load_new_history_moscow()
+    proj_ed = ''
+
+
+
+
+
+
+
+
+
 
 
 
@@ -132,7 +191,7 @@ if option == 'Анализ спроса':
     col1, col2, col3 = st.columns(3)
     with col1:
         year = st.selectbox('**:spiral_calendar_pad:Выберите год**',
-                            sorted(list(map(int, load_realty_sold()['Дата регистрации'].dt.year.dropna().unique())),
+                            sorted(list(map(int, df['Дата регистрации'].dt.year.dropna().unique())),
                                    reverse=True),
                             index=0)
     with col2:
@@ -141,7 +200,7 @@ if option == 'Анализ спроса':
         month_max = st.selectbox('**:spiral_calendar_pad:Выберите конечный месяц**', months.keys())
 
     st.markdown("&nbsp;")
-    df = load_realty_sold()
+    #df = load_realty_sold_spb()
     if proj_ed:
         proj = st.sidebar.multiselect('**Выберите проект:**', sorted(proj_dict[proj_ed]), default=sorted(proj_dict[proj_ed]))
         df = df[df['ЖК_рус'].isin(proj)]
@@ -280,9 +339,11 @@ if option == 'Анализ спроса':
 
     if len(proj) * len(apart_type) != 0:
         st.write('<h4> Итоговая таблица по проектам:</h4>', unsafe_allow_html=True)
+        st.markdown("&nbsp;")
         main_filter = st.selectbox('**Выберите показатель для фильтрации итоговой таблицы:**',
                                    ['Количество зарегистрированных ДДУ, шт.', 'Средняя площадь, м²', 'Средняя стоимость м², тыс. руб.', 'Средняя стоимость одного лота, млн руб.'],
                                    index=0)
+        st.markdown("&nbsp;")
 
         st.write(get_main()[0].sort_values(by=main_filter, ascending=False).reset_index().style.format(precision=1).to_html(), unsafe_allow_html=True)
         st.markdown("&nbsp;")
@@ -323,18 +384,18 @@ if option == 'Анализ спроса':
 
 
 if option == 'Анализ предложения':
-    df = load_new_history()
+    #df = load_new_history_spb()
     st.markdown("&nbsp;")
     if proj_ed:
         proj = st.sidebar.multiselect('**Выберите проект:**', sorted(proj_dict[proj_ed]), default=sorted(proj_dict[proj_ed]))
-        df = df[df['ЖК_рус'].isin(proj)]
-        apart_type = st.sidebar.multiselect('**Выберите тип помещения:**', sorted(df['Тип помещения'].unique()))
-        df = df[df['Тип помещения'].isin(apart_type)]
+        df1 = df1[df1['ЖК_рус'].isin(proj)]
+        apart_type = st.sidebar.multiselect('**Выберите тип помещения:**', sorted(df1['Тип помещения'].unique()))
+        df1 = df1[df1['Тип помещения'].isin(apart_type)]
     else:
-        proj = st.sidebar.multiselect('**Выберите проект:**', sorted(df['ЖК_рус'].unique()))
-        df = df[df['ЖК_рус'].isin(proj)]
-        apart_type = st.sidebar.multiselect('**Выберите тип помещения:**', sorted(df['Тип помещения'].unique()))
-        df = df[df['Тип помещения'].isin(apart_type)]
+        proj = st.sidebar.multiselect('**Выберите проект:**', sorted(df1['ЖК_рус'].unique()))
+        df1 = df1[df1['ЖК_рус'].isin(proj)]
+        apart_type = st.sidebar.multiselect('**Выберите тип помещения:**', sorted(df1['Тип помещения'].unique()))
+        df1 = df1[df1['Тип помещения'].isin(apart_type)]
 
     if len(proj) * len(apart_type) != 0:
 
@@ -342,7 +403,7 @@ if option == 'Анализ предложения':
         final_list = []
         original_list = []
 
-        df_filtered = df[df['Тип помещения'].isin(proj)]
+        df_filtered = df1[df1['Тип помещения'].isin(proj)]
 
         dummy_exp_df = pd.DataFrame()
         dummy_exp_df['Комнат'] = sorted(df_filtered['Комнат'].unique())
@@ -351,8 +412,8 @@ if option == 'Анализ предложения':
 
         for project in proj:
 
-            df_filtered = df[(df['ЖК_рус'] == project) &
-                              (df['Тип помещения'].isin(apart_type))]
+            df_filtered = df1[(df1['ЖК_рус'] == project) &
+                              (df1['Тип помещения'].isin(apart_type))]
 
             if (df_filtered['Комнат'].isnull().sum() == df_filtered.shape[0]) or (
                     df_filtered['Площадь'].isnull().sum() == df_filtered.shape[0]) or (
@@ -434,7 +495,7 @@ if option == 'Анализ предложения':
         st.markdown("&nbsp;")
 
         download = st.button('Загрузить в формате .xlsx',
-                             help=f'Таблица составлена за период с {str(df["Дата актуализации"].min())[:-9]} по {str(df["Дата актуализации"].max())[:-9]}')
+                             help=f'Таблица составлена за период с {str(df1["Дата актуализации"].min())[:-9]} по {str(df1["Дата актуализации"].max())[:-9]}')
         if download:
             download_dataframe_xlsx(final_exp)
 
