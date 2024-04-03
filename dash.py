@@ -133,12 +133,13 @@ st.sidebar.markdown("&nbsp;")
 
 
 
-password = st.sidebar.text_input('**Введите пароль:**',  type='password')
-if password != 'EDN2024':
-    st.sidebar.warning('Введён неверный пароль')
-else:
-    with st.sidebar:
-        city = option_menu('Выбор города:', ('Санкт-Петербург', 'Москва'), icons=[' ', ' '], menu_icon='building-check', default_index=0, styles={
+#password = st.sidebar.text_input('**Введите пароль:**',  type='password')
+#if password != 'EDN2024':
+#    st.sidebar.warning('Введён неверный пароль')
+#else:
+
+with st.sidebar:
+    city = option_menu('Выбор города:', ('Санкт-Петербург', 'Москва'), icons=[' ', ' '], menu_icon='building-check', default_index=0, styles={
                         "container": {"padding": "0!important", "background-color": "#F6F6F7"},
                         "nav-link": {
                             "font-size": "15px",
@@ -148,7 +149,7 @@ else:
                         },
                         "nav-link-selected": {"background-color": "#3250C0"},
                     })
-        option = option_menu('Выбор опции:', ['Анализ спроса', 'Анализ предложения'], icons=[' ', ' '], menu_icon='filter-right', default_index=0, styles={
+    option = option_menu('Выбор опции:', ['Анализ спроса', 'Анализ предложения'], icons=[' ', ' '], menu_icon='filter-right', default_index=0, styles={
                     "container": {"padding": "0!important", "background-color": "#F6F6F7"},
                     "nav-link": {
                         "font-size": "15px",
@@ -158,7 +159,7 @@ else:
                     },
                     "nav-link-selected": {"background-color": "#3250C0"},
                 })
-        st.sidebar.markdown("&nbsp;")
+    st.sidebar.markdown("&nbsp;")
 
 
 
@@ -169,12 +170,12 @@ else:
 
 
 
-    if city == 'Санкт-Петербург':
+if city == 'Санкт-Петербург':
         df = load_realty_sold_spb()
         df1 = load_new_history_spb()
         proj_ed = st.sidebar.selectbox('**Выберите проект ED:**', proj_dict.keys(), index=None)
 
-    else:
+else:
         df = load_realty_sold_moscow()
         df1 = load_new_history_moscow()
         proj_ed = ''
@@ -182,7 +183,7 @@ else:
 
 
 
-    if option == 'Анализ спроса':
+if option == 'Анализ спроса':
         col1, col2, col3 = st.columns(3)
         with col1:
             year = st.selectbox('**:spiral_calendar_pad:Выберите год**',
@@ -376,7 +377,7 @@ else:
                 st.markdown('---')
 
 
-    if option == 'Анализ предложения':
+if option == 'Анализ предложения':
         #df = load_new_history_spb()
         st.markdown("&nbsp;")
         if proj_ed:
