@@ -88,7 +88,7 @@ def highlight_last_row_and_column(s):
 @st.cache_data
 def download_dataframe_xlsx(x):
     with st.spinner('Загрузка файла...'):
-        x.to_excel(f"Экспозиция с {str(df['Дата актуализации'].min())[:-9][-2:]}-{str(df['Дата актуализации'].min())[:-9][-5:-3]}-{str(df['Дата актуализации'].min())[:-9][-10:-6]} по {str(df['Дата актуализации'].max())[:-9][-2:]}-{str(df['Дата актуализации'].max())[:-9][-5:-3]}-{str(df['Дата актуализации'].max())[:-9][-10:-6]}.xlsx", index=False)
+        x.to_excel(f"Экспозиция.xlsx", index=True)
         st.success('Файл успешно скачан')
 
 
