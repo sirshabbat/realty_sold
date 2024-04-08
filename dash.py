@@ -20,7 +20,7 @@ st.markdown('<style>div.block-container{padding-top:1rem;}</style>', unsafe_allo
 # REALTY_SOLD SPB
 @st.cache_data()
 def load_realty_sold_spb():
-    df = pd.read_pickle('realty_sold_04042024_SPB_LO.gz')
+    df = pd.read_pickle('realty_sold_06032024_SPB_LO.gz')
     df = df[(df['Купил лотов в ЖК'].isin(np.arange(1, 6))) & (df['Покупатель ЮЛ'].isna())]  # лотов [1;5] + ЮЛ - NaN
     df = df.rename(columns={"ЖК рус": "ЖК_рус"})
     df = df.replace('Шипилевский', 'Шепилевский')  # переименуем на "Шепилевский"
@@ -33,7 +33,7 @@ def load_realty_sold_spb():
 # NEW HISTORY SPB
 @st.cache_data()
 def load_new_history_spb():
-    df1 = pd.read_pickle('new_history_02042024_SPB_LO.gz')
+    df1 = pd.read_pickle('new_history_04032024_SPB_LO.gz')
     df1 = df1.rename(columns={"ЖК рус": "ЖК_рус"})
     df1['Дата актуализации'] = pd.to_datetime(df1['Дата актуализации'])
     df1['Комнат'].dropna(inplace=True)
@@ -79,10 +79,13 @@ def get_dummy_df():
     dummy_df.loc['Итог по месяцам'] = ['']
     return dummy_df
 
+
 # ВЫДЕЛЕНИЕ ПОСЛЕДНЕГО СТОЛБЦА И ПОСЛЕДНЕЙ СТРОКИ ТАБЛИЦЫ
 @st.cache_data
 def highlight_last_row_and_column(s):
     return ['background-color: #B1E2C0' if (i == (len(s) - 1) or s.name == 'Общий итог') else '' for i in range(len(s))] # ещё хороший цвет: #82C4DE
+
+
 
 # ВЫГРУЗКА ТАБЛИЦЫ В XLSX
 @st.cache_data
@@ -107,9 +110,9 @@ proj_dict = {"Берег Курортный": [#'Глоракс Балтийск
              "1919/Shepilevskiy": ['Куинджи', 'Дефанс', 'Таленто', 'Миръ', 'Империал Клаб', 'Ай Ди Московский',
                                    'Ай Ди Парк Победы', 'Виктори Плаза', 'Эволюций', 'Шепилевский',
                                    'Коллекционный дом 1919',
-                                   'Астра Марин', 'Акцент', 'Квартал Че'],
+                                   'Астра Марин', 'Акцент', 'Авант', 'Квартал Че'],
 
-             "17/33 Петровский остров": ['Нева Резиденс', 'Нева Хаус', 'Дзен Гарден', 'Авант', 'Аструм', 'Гранд Вью', 'Уан',
+             "17/33 Петровский остров": ['Нева Резиденс', 'Нева Хаус', 'Дзен Гарден', 'Аструм', 'Гранд Вью', 'Уан',
                                          'Уан Тринити Плейс', 'Крестовский 4', 'Парусная 1', 'Петровская Коса',
                                          'Петровская доминанта', 'Петровский остров 1733', 'Императорский яхт-клуб',
                                          'Резиденция на Малой Невке', 'Три грации', 'Северная корона']}
@@ -225,6 +228,12 @@ if option == 'Анализ спроса':
                 project_ddu = project_ddu.assign(total=project_ddu.sum(axis=1))
                 project_ddu.rename(columns={'total': 'Общий итог'}, inplace=True)
                 project_ddu.loc['Итог по месяцам'] = project_ddu.sum()
+                #temp = ['']
+                #result = list(project_ddu.loc['Итог по месяцам'])
+                #for i in range(len(result)-1):
+                #    temp.append(f'{round((result[i + 1] - result[i]) / result[i] * 100)}%')
+                #temp[-1] = ''
+                #project_ddu.loc['Темп'] = temp
                 # project_ddu.rename(columns=month_map, inplace=True)
                 #project_ddu.replace(0, '', inplace=True)
                 return project_ddu  # .style.format(precision=0).apply(highlight_last_row_and_column)
@@ -347,9 +356,9 @@ if option == 'Анализ спроса':
             with col1:
                 st.metric(f"**Количество зарегистрированных ДДУ, шт.**", get_main()[1])
             with col2:
-                st.metric(f"**Средняя площадь, м²**", round(get_main()[2], 1))
+                st.metric(f"**Средняя площадь, м²**", "{:.1f}".format(get_main()[2]))
             with col3:
-                st.metric(f"**Средняя стоимость м², тыс. руб.**", round(get_main()[3]))
+                st.metric(f"**Средняя стоимость м², тыс. руб.**", "{:.0f}".format(get_main()[3]))
             with col4:
                 st.metric(f"**Средняя стоимость одного лота, млн руб.**", round(get_main()[4],1))
             st.markdown('---')
@@ -492,10 +501,6 @@ if option == 'Анализ предложения':
                                  help=f'Таблица составлена за период с {str(df1["Дата актуализации"].min())[:-9]} по {str(df1["Дата актуализации"].max())[:-9]}')
             if download:
                 download_dataframe_xlsx(final_exp)
-
-
-
-
 
 
 
