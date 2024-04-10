@@ -80,10 +80,23 @@ def get_dummy_df():
     return dummy_df
 
 
-# ВЫДЕЛЕНИЕ ПОСЛЕДНЕГО СТОЛБЦА И ПОСЛЕДНЕЙ СТРОКИ ТАБЛИЦЫ
+# ВЫДЕЛЕНИЕ ПОСЛЕДНЕГО СТОЛБЦА И ПРЕДПОСЛЕДНЕЙ СТРОКИ ТАБЛИЦЫ
 @st.cache_data
 def highlight_last_row_and_column(s):
-    return ['background-color: #B1E2C0' if (i == (len(s) - 1) or s.name == 'Общий итог') else '' for i in range(len(s))] # ещё хороший цвет: #82C4DE
+    return ['background-color: #FFFFFF' if (i == (len(s) - 2) or s.name == 'Общий итог') else 'background-color: #FFFFFF' if (i == len(s) - 1) else '' for i in range(len(s))] # ещё хороший цвет: #82C4DE
+
+
+
+# ВЫДЕЛЕНИЕ ЦВЕТОМ ЗНАЧЕНИЙ В ТЕМПЕ
+@st.cache_data
+def color_negative_red(val):
+    color = 'red' if str(val).startswith('-') else 'green'
+    return f'color: {color}'
+
+
+
+
+
 
 
 
@@ -224,18 +237,18 @@ if option == 'Анализ спроса':
             if project_ddu.shape[0] == 0:
                 return get_dummy_df()
             else:
-                project_ddu.fillna(0, inplace=True)
                 project_ddu = project_ddu.assign(total=project_ddu.sum(axis=1))
                 project_ddu.rename(columns={'total': 'Общий итог'}, inplace=True)
                 project_ddu.loc['Итог по месяцам'] = project_ddu.sum()
-                #temp = ['']
-                #result = list(project_ddu.loc['Итог по месяцам'])
-                #for i in range(len(result)-1):
-                #    temp.append(f'{round((result[i + 1] - result[i]) / result[i] * 100)}%')
-                #temp[-1] = ''
-                #project_ddu.loc['Темп'] = temp
+                temp = ['']
+                result = list(project_ddu.loc['Итог по месяцам'])
+                for i in range(len(result)-1):
+                    temp.append(f'{round((result[i + 1] - result[i]) / result[i] * 100)}%')
+                temp[-1] = ''
+                project_ddu.loc['Динамика'] = temp
                 # project_ddu.rename(columns=month_map, inplace=True)
                 #project_ddu.replace(0, '', inplace=True)
+
                 return project_ddu  # .style.format(precision=0).apply(highlight_last_row_and_column)
         def get_mean_m2(name):
             project_mean_m2_price = df[df['ЖК_рус'] == name].pivot_table(
@@ -263,6 +276,12 @@ if option == 'Анализ спроса':
                 new_mean_m2.loc['Итог по месяцам'] = project_mean_m2_price.sum(axis=0) / project_mean_m2_square.sum(axis=0) / 1000
                 # new_mean_m2.loc['Итог по месяцам'] = new_mean_m2.sum(axis=0)
                 new_mean_m2.fillna(0, inplace=True)
+                temp = ['']
+                result = list(new_mean_m2.loc['Итог по месяцам'])
+                for i in range(len(result) - 1):
+                    temp.append(f'{round((result[i + 1] - result[i]) / result[i] * 100)}%')
+                temp[-1] = ''
+                new_mean_m2.loc['Динамика'] = temp
                 # new_mean_m2.rename(columns=month_map, inplace=True)
                 #new_mean_m2.replace(0, '', inplace=True)
                 return new_mean_m2  # .style.format(precision=0).apply(highlight_last_row_and_column)
@@ -284,6 +303,13 @@ if option == 'Анализ спроса':
 
                 #project_mean_square = round(project_mean_square, 1)
                 project_mean_square.fillna(0, inplace=True)
+                temp = ['']
+                result = list(project_mean_square.loc['Итог по месяцам'])
+                for i in range(len(result) - 1):
+                    temp.append(f'{round((result[i + 1] - result[i]) / result[i] * 100)}%')
+                temp[-1] = ''
+                project_mean_square.loc['Динамика'] = temp
+
                 #project_mean_square.replace(0, '', inplace=True)
                 return project_mean_square
         def get_mean_lot(name):
@@ -305,6 +331,13 @@ if option == 'Анализ спроса':
 
                 project_mean_lot.fillna(0, inplace=True)
                 project_mean_lot = project_mean_lot / 10 ** 6
+
+                temp = ['']
+                result = list(project_mean_lot.loc['Итог по месяцам'])
+                for i in range(len(result) - 1):
+                    temp.append(f'{round((result[i + 1] - result[i]) / result[i] * 100)}%')
+                temp[-1] = ''
+                project_mean_lot.loc['Динамика'] = temp
                 # project_mean_lot.rename(columns=month_map, inplace=True)
                 #project_mean_lot = round(project_mean_lot, 1)
                 #project_mean_lot.replace(0, '', inplace=True)
@@ -321,7 +354,7 @@ if option == 'Анализ спроса':
             main_df['Средняя площадь, м²'] = [get_mean_square(name)['Общий итог'].loc['Итог по месяцам'] for name in proj]
             main_df['Средняя стоимость м², тыс. руб.'] = [get_mean_m2(name)['Общий итог'].loc['Итог по месяцам'] for name in proj]
             main_df['Средняя стоимость одного лота, млн руб.'] = [get_mean_lot(name)['Общий итог'].loc['Итог по месяцам'] for name in proj]
-            main_df = main_df.set_index('Название проекта').replace('', '0').astype(float).round(1)
+            main_df = main_df.set_index('Название проекта').replace('', '0').astype(float)
 
 
             a = sum(main_df['Количество зарегистрированных ДДУ, шт.'] * main_df['Средняя стоимость одного лота, млн руб.'])
@@ -358,9 +391,9 @@ if option == 'Анализ спроса':
             with col2:
                 st.metric(f"**Средняя площадь, м²**", "{:.1f}".format(get_main()[2]))
             with col3:
-                st.metric(f"**Средняя стоимость м², тыс. руб.**", "{:.0f}".format(get_main()[3]))
+                st.metric(f"**Средняя стоимость м², тыс. руб.**", round(get_main()[3]))
             with col4:
-                st.metric(f"**Средняя стоимость одного лота, млн руб.**", round(get_main()[4],1))
+                st.metric(f"**Средняя стоимость одного лота, млн руб.**", round(get_main()[4], 1))
             st.markdown('---')
             st.markdown("&nbsp;")
 
@@ -370,18 +403,18 @@ if option == 'Анализ спроса':
                 col1, col2 = st.columns(2)
                 with col1:
                     st.write('<h5> 1️⃣ Количество зарегистрированных ДДУ, шт.</h5>', unsafe_allow_html=True)
-                    st.write(get_ddu(project).replace(0, np.nan).style.format(precision=0).apply(highlight_last_row_and_column))
+                    st.write(get_ddu(project).replace(0, np.nan).style.format(precision=0).apply(highlight_last_row_and_column).applymap(color_negative_red, subset=pd.IndexSlice[get_ddu(project).index[-1], :]))
                     st.markdown("&nbsp;")
                 with col2:
                     st.write('<h5> 2️⃣ Средняя площадь, м²</h5>', unsafe_allow_html=True)
-                    st.write(get_mean_square(project).replace(0, np.nan).style.format(precision=1).apply(highlight_last_row_and_column))
+                    st.write(get_mean_square(project).replace(0, np.nan).style.format(precision=1).apply(highlight_last_row_and_column).applymap(color_negative_red, subset=pd.IndexSlice[get_ddu(project).index[-1], :]))
                     st.markdown("&nbsp;")
                 with col1:
                     st.write('<h5> 3️⃣ Средняя стоимость м², тыс. руб.</h5>', unsafe_allow_html=True)
-                    st.write(get_mean_m2(project).replace(0, np.nan).style.format(precision=0).apply(highlight_last_row_and_column))
+                    st.write(get_mean_m2(project).replace(0, np.nan).style.format(precision=0).apply(highlight_last_row_and_column).applymap(color_negative_red, subset=pd.IndexSlice[get_ddu(project).index[-1], :]))
                 with col2:
                     st.write('<h5> 4️⃣ Средняя стоимость одного лота, млн руб.</h5>', unsafe_allow_html=True)
-                    st.write(get_mean_lot(project).replace(0, np.nan).style.format(precision=1).apply(highlight_last_row_and_column))
+                    st.write(get_mean_lot(project).replace(0, np.nan).style.format(precision=1).apply(highlight_last_row_and_column).applymap(color_negative_red, subset=pd.IndexSlice[get_ddu(project).index[-1], :]))
                 st.markdown("&nbsp;")
                 st.markdown('---')
 
