@@ -616,28 +616,20 @@ if option == 'Анализ условий покупки':
 
             try:
                 name = help[help['source'] == project.strip()]['demand'].iloc[0]
-                df_mortgage = df_mortgage[df_mortgage['ЖК'].str.strip() == name.strip()]
-                df_split = df_split[df_split['ЖК'].str.strip() == name.strip()]
-                df_promo = df_promo[df_promo['ЖК'].str.strip() == name.strip()]
-
-
-
                 st.markdown("---")
                 st.write(f'<h4> {project} </h4>', unsafe_allow_html=True)
-                st.write(name)
                 st.write(df_test)
                 with st.expander(f'**Данные по ипотеке:**'):
-                    st.table(df_mortgage)
+                    st.table(df_mortgage[df_mortgage['ЖК'].str.strip() == name.strip()])
                 with st.expander(f'**Данные по рассрочке:**'):
-                    st.table(df_split)
+                    st.table(df_split[df_split['ЖК'].str.strip() == name.strip()])
                 with st.expander(f'**Данные по акциям:**'):
-                    st.table(df_promo)
+                    st.table(df_promo[df_promo['ЖК'].str.strip() == name.strip()])
                 st.markdown("&nbsp;")
             except IndexError:
                 st.write(f'<h4> {project}</h4>', unsafe_allow_html=True)
                 st.write(f'<h5>🚫 Нет информации по проекту </h5>', unsafe_allow_html=True)
                 st.markdown("&nbsp;")
-                pass
 
 
 
