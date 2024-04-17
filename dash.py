@@ -616,7 +616,6 @@ if option == 'Анализ условий покупки':
 
             try:
                 name = help[help['source'] == project.strip()]['demand'].iloc[0]
-                st.markdown("---")
                 st.write(f'<h4> {project} </h4>', unsafe_allow_html=True)
                 st.write(df_test)
                 with st.expander(f'**Данные по ипотеке:**'):
@@ -625,10 +624,12 @@ if option == 'Анализ условий покупки':
                     st.table(df_split[df_split['ЖК'].str.strip() == name.strip()])
                 with st.expander(f'**Данные по акциям:**'):
                     st.table(df_promo[df_promo['ЖК'].str.strip() == name.strip()])
+                st.markdown("---")
                 st.markdown("&nbsp;")
             except IndexError:
                 st.write(f'<h4> {project}</h4>', unsafe_allow_html=True)
                 st.write(f'<h5>🚫 Нет информации по проекту </h5>', unsafe_allow_html=True)
+                st.markdown("---")
                 st.markdown("&nbsp;")
 
 
