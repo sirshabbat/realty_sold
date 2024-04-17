@@ -2,7 +2,9 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 from streamlit_option_menu import option_menu
-import time
+from st_aggrid import AgGrid
+from st_aggrid import AgGrid, GridOptionsBuilder, ColumnsAutoSizeMode
+
 
 # ПАРАМЕТРЫ СТРАНИЦЫ
 
@@ -36,7 +38,9 @@ def load_new_history_spb():
     df1 = pd.read_pickle('new_history_04032024_SPB_LO.gz')
     df1 = df1.rename(columns={"ЖК рус": "ЖК_рус"})
     df1['Дата актуализации'] = pd.to_datetime(df1['Дата актуализации'])
+    df1 = df1.replace('Шипилевский', 'Шепилевский')
     df1['Комнат'].dropna(inplace=True)
+    df1['ЖК_рус'] = df1['ЖК_рус'].str.strip()
     return df1
 
 # REALTY_SOLD MOSCOW
@@ -51,7 +55,6 @@ def load_realty_sold_moscow():
     df['Дата'] = df['Дата регистрации'].dt.to_period('M')
     return df
 
-
 # NEW HISTORY MOSCOW
 @st.cache_data()
 def load_new_history_moscow():
@@ -61,6 +64,34 @@ def load_new_history_moscow():
     df1['Комнат'].dropna(inplace=True)
     return df1
 
+# АКЦИИ (СПБ)
+def load_promo():
+    df = pd.read_excel('Акции_16.01.xlsx')[['ЖК', 'Название акции', 'Размер скидки', 'Дата начала акции', 'Дата окончания акции', 'Условия акции', 'Кол-во апартаментов под акцией']]
+    df['ЖК'] = df['ЖК'].str.strip()
+    return df
+
+# ИПОТЕКА (СПБ)
+@st.cache_data()
+def load_mortgage():
+    df = pd.read_excel('Ипотека_16.01.xlsx')[['ЖК', 'Банк', 'Название ипотеки', 'Ставка min', 'Период (лет)', 'Первый платёж (от %)']]
+    df['ЖК'] = df['ЖК'].str.strip()
+    return df
+
+# РАССРОЧКА (СПБ)
+@st.cache_data()
+def load_split():
+    df = pd.read_excel('Рассрочка_16.01.xlsx')[['ЖК', 'Ставка', 'Первый взнос', 'Годовых', 'Макс. Срок']]
+    df['ЖК'] = df['ЖК'].str.strip()
+    return df
+
+# ТАБЛИЦА С СООТВЕТСТВИЕМ НАЗВАНИЙ ПРОЕКТОВ (ДЛЯ ИПОТЕК, АКЦИЙ И РАССРОЧЕК)
+@st.cache_data()
+def load_help():
+    help = pd.read_excel('test.xlsx')
+    help['demand'] = help['demand'].str.strip()
+    help['source'] = help['source'].str.strip()
+    return help
+
 
 
 
@@ -68,9 +99,6 @@ def load_new_history_moscow():
 
 
 # ОПРЕДЕЛЕНИЕ ВТОРОСТЕПЕННЫХ ФУНКЦИЙ
-
-
-
 # ПУСТАЯ ТАБЛИЦА
 @st.cache_data
 def get_dummy_df():
@@ -165,7 +193,7 @@ with st.sidebar:
                         },
                         "nav-link-selected": {"background-color": "#3250C0"},
                     })
-    option = option_menu('Выбор опции:', ['Анализ спроса', 'Анализ предложения'], icons=[' ', ' '], menu_icon='filter-right', default_index=0, styles={
+    option = option_menu('Выбор опции:', ['Анализ спроса', 'Анализ предложения', 'Анализ условий покупки'], icons=[' ', ' ', ' '], menu_icon='filter-right', default_index=0, styles={
                     "container": {"padding": "0!important", "background-color": "#F6F6F7"},
                     "nav-link": {
                         "font-size": "15px",
@@ -200,6 +228,9 @@ else:
 
 
 if option == 'Анализ спроса':
+
+        st.subheader('Анализ спроса')
+        st.markdown("&nbsp;")
         col1, col2, col3 = st.columns(3)
         with col1:
             year = st.selectbox('**:spiral_calendar_pad:Выберите год**',
@@ -420,6 +451,8 @@ if option == 'Анализ спроса':
 
 
 if option == 'Анализ предложения':
+
+        st.subheader('Анализ предложения')
         #df = load_new_history_spb()
         st.markdown("&nbsp;")
         if proj_ed:
@@ -534,6 +567,80 @@ if option == 'Анализ предложения':
                                  help=f'Таблица составлена за период с {str(df1["Дата актуализации"].min())[:-9]} по {str(df1["Дата актуализации"].max())[:-9]}')
             if download:
                 download_dataframe_xlsx(final_exp)
+
+if option == 'Анализ условий покупки':
+
+    st.subheader('Анализ условий покупки')
+    st.markdown("&nbsp;")
+    help = load_help()
+    df_mortgage = load_mortgage()
+    df_split = load_split()
+    df_promo = load_promo()
+
+
+
+
+    if proj_ed:
+        proj = st.sidebar.multiselect('**Выберите проект:**', sorted(proj_dict[proj_ed]), default=sorted(proj_dict[proj_ed]))
+        df1 = df1[df1['ЖК_рус'].isin(proj)]
+        apart_type = st.sidebar.multiselect('**Выберите тип помещения:**', sorted(df1['Тип помещения'].unique()))
+        df1 = df1[df1['Тип помещения'].isin(apart_type)]
+    else:
+        proj = st.sidebar.multiselect('**Выберите проект:**', sorted(df1['ЖК_рус'].unique()))
+        df1 = df1[df1['ЖК_рус'].isin(proj)]
+        apart_type = st.sidebar.multiselect('**Выберите тип помещения:**', sorted(df1['Тип помещения'].unique()))
+        df1 = df1[df1['Тип помещения'].isin(apart_type)]
+
+    if len(proj) * len(apart_type) != 0:
+
+
+        df1 = df1[(df1['ЖК_рус'].isin(proj)) & (df1['Тип помещения'].isin(apart_type))]
+
+        for project in proj:
+            df_proj = df1[df1['ЖК_рус'] == project]
+
+            pivot_1 = df_proj.pivot_table(index='Комнат', values='Цена кв м', aggfunc='min') / 1000
+            pivot_1.rename(columns={'Цена кв м': 'Мин. цена м², тыс. р.'}, inplace=True)
+            pivot_1 = pivot_1.applymap(round)
+
+            pivot_2 = df_proj.pivot_table(index='Комнат', values='Площадь', aggfunc='min')
+            pivot_2.rename(columns={'Площадь': 'Мин. площадь, м²'}, inplace=True)
+            pivot_2 = pivot_2.round(1)
+
+            pivot_3 = df_proj.pivot_table(index='Комнат', values='Цена', aggfunc='min')
+            pivot_3 = pivot_3 / 10 ** 6
+            pivot_3.rename(columns={'Цена': 'Мин. цена, млн р.'}, inplace=True)
+            pivot_3 = pivot_3.round(1)
+
+            df_test = pd.concat([pivot_1, pivot_2, pivot_3], axis=1)
+
+
+
+            try:
+                name = help[help['source'] == project.strip()]['demand'].iloc[0]
+                df_mortgage = df_mortgage[df_mortgage['ЖК'].str.strip() == name.strip()]
+                df_split = df_split[df_split['ЖК'].str.strip() == name.strip()]
+                df_promo = df_promo[df_promo['ЖК'].str.strip() == name.strip()]
+
+
+
+                st.markdown("---")
+                st.write(f'<h4> {project} </h4>', unsafe_allow_html=True)
+                st.write(name)
+                st.write(df_test)
+                with st.expander(f'**Данные по ипотеке:**'):
+                    st.table(df_mortgage)
+                with st.expander(f'**Данные по рассрочке:**'):
+                    st.table(df_split)
+                with st.expander(f'**Данные по акциям:**'):
+                    st.table(df_promo)
+                st.markdown("&nbsp;")
+            except IndexError:
+                st.write(f'<h4> {project}</h4>', unsafe_allow_html=True)
+                st.write(f'<h5>🚫 Нет информации по проекту </h5>', unsafe_allow_html=True)
+                st.markdown("&nbsp;")
+                pass
+
 
 
 
