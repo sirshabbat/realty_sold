@@ -44,7 +44,7 @@ def load_new_history_spb():
 # REALTY_SOLD MOSCOW
 @st.cache_data()
 def load_realty_sold_moscow():
-    df = pd.read_pickle('realty_sold_06032024_M_MO_NM.gz')
+    df = pd.read_pickle('realty_sold_04042024_M.gz')
     df = df[(df['Купил лотов в ЖК'].isin(np.arange(1, 6))) & (df['Покупатель ЮЛ'].isna())]  # лотов [1;5] + ЮЛ - NaN
     df = df.rename(columns={"ЖК рус": "ЖК_рус"})
     df = df[df['Уступка'] == 0]  # уберём уступки
@@ -56,7 +56,7 @@ def load_realty_sold_moscow():
 # NEW HISTORY MOSCOW
 @st.cache_data()
 def load_new_history_moscow():
-    df1 = pd.read_pickle('new_history_04032024.gz')
+    df1 = pd.read_pickle('new_history_02042024_M.gz')
     df1 = df1.rename(columns={"ЖК рус": "ЖК_рус"})
     df1['Дата актуализации'] = pd.to_datetime(df1['Дата актуализации'])
     df1['Комнат'].dropna(inplace=True)
