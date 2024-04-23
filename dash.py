@@ -420,9 +420,9 @@ if option == 'Анализ спроса':
             with col2:
                 st.metric(f"**Средняя площадь, м²**", "{:.1f}".format(get_main()[2]))
             with col3:
-                st.metric(f"**Средняя стоимость м², тыс. руб.**", round(get_main()[3]))
+                st.metric(f"**Средняя стоимость м², тыс. руб.**", "{:.0f}".format(get_main()[3]))
             with col4:
-                st.metric(f"**Средняя стоимость одного лота, млн руб.**", round(get_main()[4], 1))
+                st.metric(f"**Средняя стоимость одного лота, млн руб.**", "{:.1f}".format(get_main()[4]))
             st.markdown('---')
             st.markdown("&nbsp;")
 
