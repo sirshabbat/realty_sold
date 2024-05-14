@@ -229,15 +229,21 @@ if option == 'Анализ спроса':
 
         st.subheader('Анализ спроса')
         st.markdown("&nbsp;")
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
         with col1:
-            year = st.selectbox('**:spiral_calendar_pad:Выберите год**',
+            year_min = st.selectbox('**:calendar:Выберите начальный год**',
                                 sorted(list(map(int, df['Дата регистрации'].dt.year.dropna().unique())),
                                        reverse=True),
-                                index=0)
+                                index=1)
         with col2:
             month_min = st.selectbox('**:spiral_calendar_pad:Выберите начальный месяц**', months.keys())
+
         with col3:
+            year_max = st.selectbox('**:calendar:Выберите конечный год**',
+                                    sorted(list(map(int, df['Дата регистрации'].dt.year.dropna().unique())),
+                                           reverse=True),
+                                    index=0)
+        with col4:
             month_max = st.selectbox('**:spiral_calendar_pad:Выберите конечный месяц**', months.keys())
 
         st.markdown("&nbsp;")
@@ -247,13 +253,13 @@ if option == 'Анализ спроса':
             df = df[df['ЖК_рус'].isin(proj)]
             apart_type = st.sidebar.multiselect('**Выберите тип помещения:**', sorted(df['Тип помещения'].unique()))
             df = df[df['Тип помещения'].isin(apart_type)]
-            df = df[(df['Дата регистрации'].dt.year == year) & (df['Дата регистрации'].dt.month >= months[month_min]) & ((df['Дата регистрации'].dt.month <= months[month_max]))]
+            df = df[(df['Дата регистрации'].dt.year >= year_min) & (df['Дата регистрации'].dt.year <= year_max) & (df['Дата регистрации'].dt.month >= months[month_min]) & ((df['Дата регистрации'].dt.month <= months[month_max]))]
         else:
             proj = st.sidebar.multiselect('**Выберите проект:**', sorted(df['ЖК_рус'].unique()))
             df = df[df['ЖК_рус'].isin(proj)]
             apart_type = st.sidebar.multiselect('**Выберите тип помещения:**', sorted(df['Тип помещения'].unique()))
             df = df[df['Тип помещения'].isin(apart_type)]
-            df = df[(df['Дата регистрации'].dt.year == year) & (df['Дата регистрации'].dt.month >= months[month_min]) & ((df['Дата регистрации'].dt.month <= months[month_max]))]
+            df = df[(df['Дата регистрации'].dt.year >= year_min) & (df['Дата регистрации'].dt.year <= year_max) & (df['Дата регистрации'].dt.month >= months[month_min]) & ((df['Дата регистрации'].dt.month <= months[month_max]))]
 
 
         def get_ddu(name):
