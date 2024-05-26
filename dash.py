@@ -246,6 +246,7 @@ if option == 'Анализ спроса':
         with col4:
             month_max = st.selectbox('**:spiral_calendar_pad:Выберите конечный месяц**', months.keys())
 
+
         st.markdown("&nbsp;")
         #df = load_realty_sold_spb()
         if proj_ed:
@@ -253,13 +254,25 @@ if option == 'Анализ спроса':
             df = df[df['ЖК_рус'].isin(proj)]
             apart_type = st.sidebar.multiselect('**Выберите тип помещения:**', sorted(df['Тип помещения'].unique()))
             df = df[df['Тип помещения'].isin(apart_type)]
-            df = df[(df['Дата регистрации'].dt.year >= year_min) & (df['Дата регистрации'].dt.year <= year_max) & (df['Дата регистрации'].dt.month >= months[month_min]) & ((df['Дата регистрации'].dt.month <= months[month_max]))]
+
+            date_min = df[(df['Дата регистрации'].dt.year == year_min) & (df['Дата регистрации'].dt.month == months[month_min])]['Дата регистрации'].min()
+            date_max = df[(df['Дата регистрации'].dt.year == year_max) & (df['Дата регистрации'].dt.month == months[month_max])]['Дата регистрации'].max()
+
+
+            df = df[(df['Дата регистрации'] >= date_min) & (df['Дата регистрации'] <= date_max)]
+
+
         else:
             proj = st.sidebar.multiselect('**Выберите проект:**', sorted(df['ЖК_рус'].unique()))
             df = df[df['ЖК_рус'].isin(proj)]
             apart_type = st.sidebar.multiselect('**Выберите тип помещения:**', sorted(df['Тип помещения'].unique()))
             df = df[df['Тип помещения'].isin(apart_type)]
-            df = df[(df['Дата регистрации'].dt.year >= year_min) & (df['Дата регистрации'].dt.year <= year_max) & (df['Дата регистрации'].dt.month >= months[month_min]) & ((df['Дата регистрации'].dt.month <= months[month_max]))]
+
+            date_min = df[(df['Дата регистрации'].dt.year == year_min) & (df['Дата регистрации'].dt.month == months[month_min])]['Дата регистрации'].min()
+            date_max = df[(df['Дата регистрации'].dt.year == year_max) & (df['Дата регистрации'].dt.month == months[month_max])]['Дата регистрации'].max()
+
+
+            df = df[(df['Дата регистрации'] >= date_min) & (df['Дата регистрации'] <= date_max)]
 
 
         def get_ddu(name):
