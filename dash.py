@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 from streamlit_option_menu import option_menu
+import calendar
 
 
 # ПАРАМЕТРЫ СТРАНИЦЫ
@@ -255,8 +256,13 @@ if option == 'Анализ спроса':
             apart_type = st.sidebar.multiselect('**Выберите тип помещения:**', sorted(df['Тип помещения'].unique()))
             df = df[df['Тип помещения'].isin(apart_type)]
 
-            date_min = df[(df['Дата регистрации'].dt.year == year_min) & (df['Дата регистрации'].dt.month == months[month_min])]['Дата регистрации'].min()
-            date_max = df[(df['Дата регистрации'].dt.year == year_max) & (df['Дата регистрации'].dt.month == months[month_max])]['Дата регистрации'].max()
+
+
+            date_max = pd.to_datetime(f"{year_max}-{months[month_max]}-{calendar.monthrange(int(year_max), int(months[month_max]))[1]}")
+            date_min = pd.to_datetime(f"{year_min}-{months[month_min]}-{1}")
+
+            #date_min = df[(df['Дата регистрации'].dt.year == year_min) & (df['Дата регистрации'].dt.month == months[month_min])]['Дата регистрации'].min()
+            #date_max = df[(df['Дата регистрации'].dt.year == year_max) & (df['Дата регистрации'].dt.month == months[month_max])]['Дата регистрации'].max()
 
 
             df = df[(df['Дата регистрации'] >= date_min) & (df['Дата регистрации'] <= date_max)]
@@ -268,8 +274,11 @@ if option == 'Анализ спроса':
             apart_type = st.sidebar.multiselect('**Выберите тип помещения:**', sorted(df['Тип помещения'].unique()))
             df = df[df['Тип помещения'].isin(apart_type)]
 
-            date_min = df[(df['Дата регистрации'].dt.year == year_min) & (df['Дата регистрации'].dt.month == months[month_min])]['Дата регистрации'].min()
-            date_max = df[(df['Дата регистрации'].dt.year == year_max) & (df['Дата регистрации'].dt.month == months[month_max])]['Дата регистрации'].max()
+            date_max = pd.to_datetime(f"{year_max}-{months[month_max]}-{calendar.monthrange(int(year_max), int(months[month_max]))[1]}")
+            date_min = pd.to_datetime(f"{year_min}-{months[month_min]}-{1}")
+
+            #date_min = df[(df['Дата регистрации'].dt.year == year_min) & (df['Дата регистрации'].dt.month == months[month_min])]['Дата регистрации'].min()
+            #date_max = df[(df['Дата регистрации'].dt.year == year_max) & (df['Дата регистрации'].dt.month == months[month_max])]['Дата регистрации'].max()
 
 
             df = df[(df['Дата регистрации'] >= date_min) & (df['Дата регистрации'] <= date_max)]
@@ -465,6 +474,8 @@ if option == 'Анализ спроса':
                     st.write(get_mean_lot(project).replace(0, np.nan).style.format(precision=1).apply(highlight_last_row_and_column).applymap(color_negative_red, subset=pd.IndexSlice[get_ddu(project).index[-1], :]))
                 st.markdown("&nbsp;")
                 st.markdown('---')
+                st.write(date_max)
+                st.write(date_min)
 
 
 if option == 'Анализ предложения':
