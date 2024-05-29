@@ -474,8 +474,6 @@ if option == 'Анализ спроса':
                     st.write(get_mean_lot(project).replace(0, np.nan).style.format(precision=1).apply(highlight_last_row_and_column).applymap(color_negative_red, subset=pd.IndexSlice[get_ddu(project).index[-1], :]))
                 st.markdown("&nbsp;")
                 st.markdown('---')
-                st.write(date_max)
-                st.write(date_min)
 
 
 if option == 'Анализ предложения':
