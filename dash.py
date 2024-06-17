@@ -3,9 +3,16 @@ import numpy as np
 import streamlit as st
 from streamlit_option_menu import option_menu
 import calendar
+import datetime
+from st_aggrid import AgGrid
+
 
 
 # ПАРАМЕТРЫ СТРАНИЦЫ
+
+today_month = datetime.datetime.today().month - 1
+today_year = datetime.datetime.today().year
+
 
 
 
@@ -192,16 +199,29 @@ with st.sidebar:
                         },
                         "nav-link-selected": {"background-color": "#3250C0"},
                     })
-    option = option_menu('Выбор опции:', ['Анализ спроса', 'Анализ предложения', 'Анализ условий покупки'], icons=[' ', ' ', ' '], menu_icon='filter-right', default_index=0, styles={
-                    "container": {"padding": "0!important", "background-color": "#F6F6F7"},
-                    "nav-link": {
-                        "font-size": "15px",
-                        "text-align": "left",
-                        "margin": "0px",
-                        "--hover-color": "#EEEEEE",
-                    },
-                    "nav-link-selected": {"background-color": "#3250C0"},
-                })
+    if city == 'Санкт-Петербург':
+        option = option_menu('Выбор опции:', ['Пульс продаж', 'Анализ спроса', 'Анализ предложения', 'Анализ условий покупки'], icons=[' ', ' ', ' ', ' '], menu_icon='filter-right', default_index=0, styles={
+                        "container": {"padding": "0!important", "background-color": "#F6F6F7"},
+                        "nav-link": {
+                            "font-size": "15px",
+                            "text-align": "left",
+                            "margin": "0px",
+                            "--hover-color": "#EEEEEE",
+                        },
+                        "nav-link-selected": {"background-color": "#3250C0"},
+                    })
+    else:
+        option = option_menu('Выбор опции:', ['Анализ спроса', 'Анализ предложения', 'Анализ условий покупки'],
+                             icons=[' ', ' ', ' '], menu_icon='filter-right', default_index=0, styles={
+                "container": {"padding": "0!important", "background-color": "#F6F6F7"},
+                "nav-link": {
+                    "font-size": "15px",
+                    "text-align": "left",
+                    "margin": "0px",
+                    "--hover-color": "#EEEEEE",
+                },
+                "nav-link-selected": {"background-color": "#3250C0"},
+            })
     st.sidebar.markdown("&nbsp;")
 
 
@@ -213,7 +233,7 @@ with st.sidebar:
 
 
 
-if city == 'Санкт-Петербург':
+if city == 'Санкт-Петербург' and option != 'Пульс продаж':
         df = load_realty_sold_spb()
         df1 = load_new_history_spb()
         proj_ed = st.sidebar.selectbox('**Выберите проект ED:**', proj_dict.keys(), index=None)
@@ -594,6 +614,7 @@ if option == 'Анализ предложения':
             if download:
                 download_dataframe_xlsx(final_exp)
 
+
 if option == 'Анализ условий покупки':
 
     st.subheader('Анализ условий покупки')
@@ -661,8 +682,42 @@ if option == 'Анализ условий покупки':
                 st.markdown("&nbsp;")
 
 
+if option == 'Пульс продаж':
+    st.subheader('Пульс продаж')
+    st.markdown("&nbsp;")
 
+    df = load_realty_sold_spb()
+    pulse_prev = df[(df['Дата регистрации'].dt.year == today_year) & (df['Дата регистрации'].dt.month == today_month - 1)]
+    pulse_prev = pd.DataFrame(pulse_prev.groupby(by=['ЖК_рус', 'Застройщик ЖК', 'класс', 'АТД']).count()['Тип Комнатности']).sort_values(
+        by='Тип Комнатности', ascending=False).reset_index().set_index('ЖК_рус')
 
+    pulse_current = df[(df['Дата регистрации'].dt.year == today_year) & (df['Дата регистрации'].dt.month == today_month)]
+    pulse_current = pd.DataFrame(pulse_current.groupby(by=['ЖК_рус', 'Застройщик ЖК', 'класс', 'АТД']).count()['Тип Комнатности']).sort_values(
+        by='Тип Комнатности', ascending=False).reset_index().set_index('ЖК_рус')
+
+    pulse = pd.DataFrame()
+    pulse['Проект'] = df[df['Дата регистрации'].dt.year == today_year]['ЖК_рус'].unique()
+    pulse['Застройщик'] = [0] * len(pulse.index)
+    pulse['Класс'] = [0] * len(pulse.index)
+    pulse['Район'] = [0] * len(pulse.index)
+    pulse.set_index('Проект', inplace=True)
+    pulse.loc[pulse_prev.index] = pulse_prev[['Застройщик ЖК', 'класс', 'АТД']].values
+    pulse.loc[pulse_current.index] = pulse_current[['Застройщик ЖК', 'класс', 'АТД']].values
+    pulse['Кол-во 1'] = [0] * len(pulse.index)
+    pulse['Кол-во 2'] = [0] * len(pulse.index)
+    pulse['Кол-во 1'].loc[pulse_prev['Тип Комнатности'].index] = pd.Series(pulse_prev['Тип Комнатности'])
+    pulse['Кол-во 2'].loc[pulse_current['Тип Комнатности'].index] = pd.Series(pulse_current['Тип Комнатности'])
+    pulse.columns = ['Девелопер/Застройщик', 'Класс', 'Район', f'{today_month - 1}/{today_year}', f'{today_month}/{today_year}']
+    pulse = pulse[pulse['Девелопер/Застройщик'] != 0]
+    pulse = pulse.sort_values(f'{today_month}/{today_year}', ascending=False)
+    pulse = pulse.reset_index()
+    pulse['Изменение'] = pd.Series((pulse[pulse.columns[-1]] / pulse[pulse.columns[-2]] - 1) * 100).round(1)
+    pulse['Изменение'].fillna(0, inplace=True)
+    pulse['Изменение'].replace(-np.inf, 0, inplace=True)
+    pulse['Изменение'].replace(np.inf, 0, inplace=True)
+    pulse['Изменение'] = pulse['Изменение'].apply(lambda x: f"{x}%")
+    pulse.set_index(np.arange(1, pulse.shape[0] + 1))
+    st.table(pulse.set_index(np.arange(1, pulse.shape[0] + 1)))
 
 
 
