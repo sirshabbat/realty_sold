@@ -210,8 +210,8 @@ with st.sidebar:
                         "nav-link-selected": {"background-color": "#3250C0"},
                     })
     else:
-        option = option_menu('Выбор опции:', ['Анализ спроса', 'Анализ предложения', 'Анализ условий покупки'],
-                             icons=[' ', ' ', ' '], menu_icon='filter-right', default_index=0, styles={
+        option = option_menu('Выбор опции:', ['Пульс продаж', 'Анализ спроса', 'Анализ предложения', 'Анализ условий покупки'],
+                             icons=[' ', ' ', ' ', ' '], menu_icon='filter-right', default_index=0, styles={
                 "container": {"padding": "0!important", "background-color": "#F6F6F7"},
                 "nav-link": {
                     "font-size": "15px",
@@ -232,7 +232,7 @@ with st.sidebar:
 
 
 
-if city == 'Санкт-Петербург' and option != 'Пульс продаж':
+if city == 'Санкт-Петербург':
         df = load_realty_sold_spb()
         df1 = load_new_history_spb()
         proj_ed = st.sidebar.selectbox('**Выберите проект ED:**', proj_dict.keys(), index=None)
@@ -695,7 +695,6 @@ if option == 'Пульс продаж':
     st.subheader('Пульс продаж')
     st.markdown("&nbsp;")
 
-    df = load_realty_sold_spb()
     pulse_prev = df[(df['Дата регистрации'].dt.year == today_year) & (df['Дата регистрации'].dt.month == today_month - 1)]
     pulse_prev = pd.DataFrame(pulse_prev.groupby(by=['ЖК_рус', 'Застройщик ЖК', 'класс', 'АТД']).count()['Тип Комнатности']).sort_values(
         by='Тип Комнатности', ascending=False).reset_index().set_index('ЖК_рус')
