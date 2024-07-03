@@ -519,7 +519,7 @@ if option == 'Анализ предложения':
         #df = load_new_history_spb()
         st.markdown("&nbsp;")
         if proj_ed:
-            proj = st.sidebar.multiselect('**Выберите проект:**', sorted(proj_dict[proj_ed]), default=sorted(proj_dict[proj_ed]))
+            proj = st.sidebar.multiselect('**Выберите проект:**', sorted(df1['ЖК_рус'].unique()), default=sorted(list(set(proj_dict[proj_ed]).intersection(df1['ЖК_рус'].unique()))))
             df1 = df1[df1['ЖК_рус'].isin(proj)]
             apart_type = st.sidebar.multiselect('**Выберите тип помещения:**', sorted(df1['Тип помещения'].unique()))
             df1 = df1[df1['Тип помещения'].isin(apart_type)]
