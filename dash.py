@@ -254,7 +254,7 @@ if option == 'Анализ спроса':
             year_min = st.selectbox('**:calendar:Выберите начальный год**',
                                 sorted(list(map(int, df['Дата регистрации'].dt.year.dropna().unique())),
                                        reverse=True),
-                                index=1)
+                                index=0)
         with col2:
             month_min = st.selectbox('**:spiral_calendar_pad:Выберите начальный месяц**', months.keys())
 
@@ -264,7 +264,7 @@ if option == 'Анализ спроса':
                                            reverse=True),
                                     index=0)
         with col4:
-            month_max = st.selectbox('**:spiral_calendar_pad:Выберите конечный месяц**', months.keys())
+            month_max = st.selectbox('**:spiral_calendar_pad:Выберите конечный месяц**', months.keys(), index=(datetime.datetime.today().month - 1))
 
 
         st.markdown("&nbsp;")
