@@ -129,10 +129,6 @@ def color_negative_red(val):
 
 
 
-
-
-
-
 # ВЫГРУЗКА ТАБЛИЦЫ В XLSX
 @st.cache_data
 def download_dataframe_xlsx(x):
@@ -198,30 +194,42 @@ with st.sidebar:
                         },
                         "nav-link-selected": {"background-color": "#3250C0"},
                     })
-    if city == 'Санкт-Петербург':
-        option = option_menu('Выбор опции:', ['Пульс продаж', 'Анализ спроса', 'Анализ предложения', 'Анализ условий покупки'], icons=[' ', ' ', ' ', ' '], menu_icon='filter-right', default_index=0, styles={
-                        "container": {"padding": "0!important", "background-color": "#F6F6F7"},
-                        "nav-link": {
-                            "font-size": "15px",
-                            "text-align": "left",
-                            "margin": "0px",
-                            "--hover-color": "#EEEEEE",
-                        },
-                        "nav-link-selected": {"background-color": "#3250C0"},
-                    })
-    else:
-        option = option_menu('Выбор опции:', ['Пульс продаж', 'Анализ спроса', 'Анализ предложения', 'Анализ условий покупки'],
-                             icons=[' ', ' ', ' ', ' '], menu_icon='filter-right', default_index=0, styles={
-                "container": {"padding": "0!important", "background-color": "#F6F6F7"},
-                "nav-link": {
-                    "font-size": "15px",
-                    "text-align": "left",
-                    "margin": "0px",
-                    "--hover-color": "#EEEEEE",
-                },
-                "nav-link-selected": {"background-color": "#3250C0"},
-            })
+    option = option_menu('Выбор опции:', ['Пульс продаж', 'Анализ спроса', 'Анализ предложения'],
+                         icons=[' ', ' ', ' ', ' '], menu_icon='filter-right', default_index=0, styles={
+            "container": {"padding": "0!important", "background-color": "#F6F6F7"},
+            "nav-link": {
+                "font-size": "15px",
+                "text-align": "left",
+                "margin": "0px",
+                "--hover-color": "#EEEEEE",
+            },
+            "nav-link-selected": {"background-color": "#3250C0"},
+        })
     st.sidebar.markdown("&nbsp;")
+#    if city == 'Санкт-Петербург':
+#        option = option_menu('Выбор опции:', ['Пульс продаж', 'Анализ спроса', 'Анализ предложения'], icons=[' ', ' ', ' '], menu_icon='filter-right', default_index=0, styles={
+#                        "container": {"padding": "0!important", "background-color": "#F6F6F7"},
+#                        "nav-link": {
+#                            "font-size": "15px",
+#                            "text-align": "left",
+#                            "margin": "0px",
+#                            "--hover-color": "#EEEEEE",
+#                        },
+#                        "nav-link-selected": {"background-color": "#3250C0"},
+#                    })
+#    else:
+#        option = option_menu('Выбор опции:', ['Пульс продаж', 'Анализ спроса', 'Анализ предложения'],
+#                             icons=[' ', ' ', ' ', ' '], menu_icon='filter-right', default_index=0, styles={
+#                "container": {"padding": "0!important", "background-color": "#F6F6F7"},
+#                "nav-link": {
+#                    "font-size": "15px",
+#                    "text-align": "left",
+#                    "margin": "0px",
+#                    "--hover-color": "#EEEEEE",
+#                },
+#                "nav-link-selected": {"background-color": "#3250C0"},
+#            })
+#    st.sidebar.markdown("&nbsp;")
 
 
 
@@ -232,7 +240,7 @@ with st.sidebar:
 
 
 
-if city == 'Санкт-Петербург':
+if city == 'Санкт-Петербург' and option != 'Пульс продаж':
         df = load_realty_sold_spb()
         df1 = load_new_history_spb()
         proj_ed = st.sidebar.selectbox('**Выберите проект ED:**', proj_dict.keys(), index=None)
@@ -270,7 +278,7 @@ if option == 'Анализ спроса':
         st.markdown("&nbsp;")
         #df = load_realty_sold_spb()
         if proj_ed:
-            proj = st.sidebar.multiselect('**Выберите проект:**', sorted(proj_dict[proj_ed]), default=sorted(proj_dict[proj_ed]))
+            proj = st.sidebar.multiselect('**Выберите проект:**', sorted(df['ЖК_рус'].unique()), default=sorted(list(set(proj_dict[proj_ed]).intersection(df['ЖК_рус'].unique()))))
             df = df[df['ЖК_рус'].isin(proj)]
             apart_type = st.sidebar.multiselect('**Выберите тип помещения:**', sorted(df['Тип помещения'].unique()))
             df = df[df['Тип помещения'].isin(apart_type)]
