@@ -702,6 +702,10 @@ if option == 'Анализ условий покупки':
 if option == 'Пульс продаж':
     st.subheader('Пульс продаж')
     st.markdown("&nbsp;")
+    if city == 'Санкт-Петербург':
+        df = load_realty_sold_spb()
+    else:
+        df = load_realty_sold_moscow()
 
     pulse_prev = df[(df['Дата регистрации'].dt.year == today_year) & (df['Дата регистрации'].dt.month == today_month - 1)]
     pulse_prev = pd.DataFrame(pulse_prev.groupby(by=['ЖК_рус', 'Застройщик ЖК', 'класс', 'АТД']).count()['Тип Комнатности']).sort_values(
