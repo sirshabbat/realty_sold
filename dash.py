@@ -497,7 +497,7 @@ if option == 'Анализ спроса':
                 col1, col2 = st.columns(2)
                 with col1:
                     st.write('<h5> 1️⃣ Количество зарегистрированных ДДУ, шт.</h5>', unsafe_allow_html=True)
-                    st.write(get_ddu(project).replace(0, np.nan).style.format(precision=0).apply(highlight_last_row_and_column).applymap(color_negative_red, subset=pd.IndexSlice[get_ddu(project).index[-1], :]))
+                    st.table(get_ddu(project).replace(0, np.nan).style.format(precision=0).apply(highlight_last_row_and_column).applymap(color_negative_red, subset=pd.IndexSlice[get_ddu(project).index[-1], :]))
                     st.markdown("&nbsp;")
                 with col2:
                     st.write('<h5> 2️⃣ Средняя площадь, м²</h5>', unsafe_allow_html=True)
