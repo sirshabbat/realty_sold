@@ -4,6 +4,7 @@ import streamlit as st
 from streamlit_option_menu import option_menu
 import calendar
 import datetime
+import plotly.express as px
 
 
 
@@ -125,6 +126,17 @@ def highlight_last_row_and_column(s):
 def color_negative_red(val):
     color = 'red' if str(val).startswith('-') else 'green'
     return f'color: {color}'
+
+
+
+# ПОКРАСКА СТРОКИ С ДЕВЕЛОПЕРОМ ELEMENT
+@st.cache_data
+def color_element(row):
+    if row['Девелопер/Застройщик'] == 'Element':
+        return ['font-weight: bold'] * len(row)
+    else:
+        return [''] * len(row)
+
 
 
 
@@ -737,8 +749,27 @@ if option == 'Пульс продаж':
     pulse['Изменение'].replace(np.inf, 0, inplace=True)
     pulse['Изменение'] = pulse['Изменение'].apply(lambda x: f"{x}%")
     pulse.set_index(np.arange(1, pulse.shape[0] + 1))
-    st.table(pulse.set_index(np.arange(1, pulse.shape[0] + 1)))
-
+    pulse = pulse.set_index(np.arange(1, pulse.shape[0] + 1))
+    #st.table(pulse.set_index(np.arange(1, pulse.shape[0] + 1)))
+    st.table(pulse.style.apply(color_element, axis=1))
+    col1, col2 = st.columns(2)
+    with col1:
+        df_vis = pd.DataFrame(pulse.groupby(by='Район')[f'{today_month}/{today_year}'].count())
+        df_vis.sort_values(by=f'{today_month}/{today_year}')
+        fig = px.bar(df_vis, x=f'{today_month}/{today_year}',
+                     y=df_vis.index,
+                     title=f'Распределение продаж по районам города<br><sup>{today_month}/{today_year}</sup>',
+                     template='seaborn',
+                     labels={f'{today_month}/{today_year}': 'Количество юнитов', 'Район': 'Район'})
+        st.plotly_chart(fig)
+    with col2:
+        df_vis = pd.DataFrame(pulse.groupby(by='Класс')[f'{today_month}/{today_year}'].count())
+        fig = px.bar(df_vis, x=f'{today_month}/{today_year}',
+                     y=df_vis.index,
+                     title=f'Распределение продаж по классам<br><sup>{today_month}/{today_year}</sup>',
+                     template='seaborn',
+                     labels={f'{today_month}/{today_year}': 'Количество юнитов', 'Класс': 'Класс'})
+        st.plotly_chart(fig)
 
 
 
