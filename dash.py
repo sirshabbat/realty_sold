@@ -778,8 +778,7 @@ if option == 'Пульс продаж':
 
     pulse_current_m2 = df[
         (df['Дата регистрации'].dt.year == today_year) & (df['Дата регистрации'].dt.month == today_month)]
-    pulse_current_m2 = pd.DataFrame(pulse_current_m2.groupby(by=['ЖК_рус', 'Застройщик ЖК', 'класс', 'АТД']).sum()[
-                                        ['Оценка цены', 'Площадь']]).reset_index().set_index('ЖК_рус')
+    pulse_current_m2 = pd.DataFrame(pulse_current_m2.groupby(by=['ЖК_рус', 'Застройщик ЖК', 'класс', 'АТД'])[['Оценка цены', 'Площадь']].sum()).reset_index().set_index('ЖК_рус')
     pulse_current_m2['Стоимость м2'] = pulse_current_m2['Оценка цены'] / pulse_current_m2['Площадь']
     pulse_current_m2 = pulse_current_m2.drop(['Оценка цены', 'Площадь'], axis=1)
 
