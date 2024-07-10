@@ -10,12 +10,6 @@ import plotly.express as px
 
 # ПАРАМЕТРЫ СТРАНИЦЫ
 
-today_month = datetime.datetime.today().month - 1
-today_year = datetime.datetime.today().year
-
-
-
-
 st.set_page_config(page_title='Nikoliers · Конкурентный обзор',
                   page_icon='https://nikoliers.ru/favicon.ico',
                   layout='wide')
@@ -139,33 +133,46 @@ def color_element(row):
 
 
 
+# ОКРАСКА СТОИМОСТИ М2 В ПУЛЬСЕ
 @st.cache_data
 def color_price_m2(column):
-    if column.name == f'Стоимость м² на {today_month - 1}/{today_year}, тыс. руб' \
-            or column.name == f'Стоимость м² на {today_month}/{today_year}, тыс. руб' \
-            or column.name == 'Изменение (стоимость м²)':
+    if column.name == f'Стоимость м² на {prev_month}/{prev_year}, тыс. руб' \
+            or column.name == f'Стоимость м² на {today_month}/{today_year}, тыс. руб':
+            #or column.name == 'Изменение (стоимость м²)':
         return ['background-color: #defbdf'] * len(column)
     else:
         return [''] * len(column)
 
 
+# ОКРАСКА ИТОГОВ ПО СТОИМОСТИ М2 В ПУЛЬСЕ
+@st.cache_data
+def color_price_m2_result(column):
+    if column.name == 'Изменение (стоимость м²)':
+        return ['background-color: #b4f7b7'] * len(column)
+    else:
+        return [''] * len(column)
 
+
+
+# ОКРАСКА КОЛИЧЕСТВА В ПУЛЬСЕ
 @st.cache_data
 def color_number(column):
-    if column.name == f'Кол-во на {today_month - 1}/{today_year}' \
-            or column.name == f'Кол-во на {today_month}/{today_year}' \
-            or column.name == 'Изменение (кол-во)':
+    if column.name == f'Кол-во на {prev_month}/{prev_year}' \
+            or column.name == f'Кол-во на {today_month}/{today_year}':
+            #or column.name == 'Изменение (кол-во)':
         return ['background-color: #f5fbda'] * len(column)
     else:
         return [''] * len(column)
 
 
 
-
-
-
-
-
+# ОКРАСКА ИТОГОВ ПО КОЛИЧЕСТВУ В ПУЛЬСЕ
+@st.cache_data
+def color_number_result(column):
+    if column.name == "Изменение (кол-во)":
+        return ['background-color: #e8f9a2'] * len(column)
+    else:
+        return [''] * len(column)
 
 
 
@@ -179,13 +186,37 @@ def download_dataframe_xlsx(x):
 
 
 
+# ПОЛУЧЕНИЕ 3 ПРЕДЫДУЩИХ МЕСЯЦЕВ ОТ СЕГОДНЯШНЕГО ДЛЯ РАБОТЫ С ДАТАМИ
+def get_3_prev_months(x):
+    if x == 1:
+        return 1, 12, 11, 10
+    if x == 2:
+        return 2, 1, 12, 11
+    if x == 3:
+        return 3, 2, 1, 12
+    else:
+        return x, x-1, x-2, x-3
 
 
 
 
 
+today_month = get_3_prev_months(datetime.datetime.today().month)[1]
+prev_month = get_3_prev_months(datetime.datetime.today().month)[2]
 
-
+if datetime.datetime.today().day > 5:
+    today_month = get_3_prev_months(datetime.datetime.today().month)[1]
+    prev_month = get_3_prev_months(datetime.datetime.today().month)[2]
+else:
+    today_month = get_3_prev_months(datetime.datetime.today().month)[2]
+    prev_month = get_3_prev_months(datetime.datetime.today().month)[3]
+if today_month == 1:
+    today_year = datetime.datetime.today().year
+    prev_year = today_year - 1
+elif today_month == 12:
+    today_year = prev_year = datetime.datetime.today().year - 1
+else:
+    today_year = prev_year = datetime.datetime.today().year
 
 
 
@@ -758,14 +789,12 @@ if option == 'Пульс продаж':
     else:
         df = load_realty_sold_moscow()
 
-    pulse_prev = df[
-        (df['Дата регистрации'].dt.year == today_year) & (df['Дата регистрации'].dt.month == today_month - 1)]
-    pulse_prev = pd.DataFrame(
-        pulse_prev.groupby(by=['ЖК_рус', 'Застройщик ЖК', 'класс', 'АТД']).count()['Тип Комнатности']).sort_values(
+    pulse_prev = df[(df['Дата регистрации'].dt.year == prev_year) & (df['Дата регистрации'].dt.month == prev_month)]
+    pulse_prev = pd.DataFrame(pulse_prev.groupby(by=['ЖК_рус', 'Застройщик ЖК', 'класс', 'АТД']).count()['Тип Комнатности']).sort_values(
         by='Тип Комнатности', ascending=False).reset_index().set_index('ЖК_рус')
 
     pulse_prev_m2 = df[
-        (df['Дата регистрации'].dt.year == today_year) & (df['Дата регистрации'].dt.month == today_month - 1)]
+        (df['Дата регистрации'].dt.year == prev_year) & (df['Дата регистрации'].dt.month == prev_month)]
     pulse_prev_m2 = pd.DataFrame(pulse_prev_m2.groupby(by=['ЖК_рус', 'Застройщик ЖК', 'класс', 'АТД'])[['Оценка цены', 'Площадь']].sum()).reset_index().set_index('ЖК_рус')
     pulse_prev_m2['Стоимость м2'] = pulse_prev_m2['Оценка цены'] / pulse_prev_m2['Площадь']
     pulse_prev_m2 = pulse_prev_m2.drop(['Оценка цены', 'Площадь'], axis=1)
@@ -788,62 +817,65 @@ if option == 'Пульс продаж':
     pulse['Класс'] = [0] * len(pulse.index)
     pulse['Район'] = [0] * len(pulse.index)
     pulse.set_index('Проект', inplace=True)
-    pulse.loc[pulse_prev.index] = pulse_prev[['Застройщик ЖК', 'класс', 'АТД']].values
-    pulse.loc[pulse_current.index] = pulse_current[['Застройщик ЖК', 'класс', 'АТД']].values
-    pulse['Кол-во 1'] = [0] * len(pulse.index)
-    pulse['Кол-во 2'] = [0] * len(pulse.index)
-    pulse['м2 1'] = [0] * len(pulse.index)
-    pulse['м2 2'] = [0] * len(pulse.index)
-    pulse['м2 1'].loc[pulse_prev_m2['Стоимость м2'].index] = pd.Series(pulse_prev_m2['Стоимость м2']) / 10 ** 3
-    pulse['м2 2'].loc[pulse_current_m2['Стоимость м2'].index] = pd.Series(pulse_current_m2['Стоимость м2']) / 10 ** 3
-    pulse[['м2 1', 'м2 2']] = pulse[['м2 1', 'м2 2']].applymap(int)
-    pulse['Кол-во 1'].loc[pulse_prev['Тип Комнатности'].index] = pd.Series(pulse_prev['Тип Комнатности'])
-    pulse['Кол-во 2'].loc[pulse_current['Тип Комнатности'].index] = pd.Series(pulse_current['Тип Комнатности'])
-    pulse.columns = ['Девелопер/Застройщик', 'Класс', 'Район',
-                     f'Кол-во на {today_month - 1}/{today_year}', f'Кол-во на {today_month}/{today_year}',
-                     f'Стоимость м² на {today_month - 1}/{today_year}, тыс. руб', f'Стоимость м² на {today_month}/{today_year}, тыс. руб']
-    pulse = pulse[pulse['Девелопер/Застройщик'] != 0]
-    pulse = pulse.sort_values(f'Кол-во на {today_month}/{today_year}', ascending=False)
-    pulse = pulse.reset_index()
+    try:
+        pulse.loc[pulse_prev.index] = pulse_prev[['Застройщик ЖК', 'класс', 'АТД']].values
+        pulse.loc[pulse_current.index] = pulse_current[['Застройщик ЖК', 'класс', 'АТД']].values
+        pulse['Кол-во 1'] = [0] * len(pulse.index)
+        pulse['Кол-во 2'] = [0] * len(pulse.index)
+        pulse['м2 1'] = [0] * len(pulse.index)
+        pulse['м2 2'] = [0] * len(pulse.index)
+        pulse['м2 1'].loc[pulse_prev_m2['Стоимость м2'].index] = pd.Series(pulse_prev_m2['Стоимость м2']) / 10 ** 3
+        pulse['м2 2'].loc[pulse_current_m2['Стоимость м2'].index] = pd.Series(pulse_current_m2['Стоимость м2']) / 10 ** 3
+        pulse[['м2 1', 'м2 2']] = pulse[['м2 1', 'м2 2']].applymap(int)
+        pulse['Кол-во 1'].loc[pulse_prev['Тип Комнатности'].index] = pd.Series(pulse_prev['Тип Комнатности'])
+        pulse['Кол-во 2'].loc[pulse_current['Тип Комнатности'].index] = pd.Series(pulse_current['Тип Комнатности'])
+        pulse.columns = ['Девелопер/Застройщик', 'Класс', 'Район',
+                         f'Кол-во на {prev_month}/{prev_year}', f'Кол-во на {today_month}/{today_year}',
+                         f'Стоимость м² на {prev_month}/{prev_year}, тыс. руб', f'Стоимость м² на {today_month}/{today_year}, тыс. руб']
+        pulse = pulse[pulse['Девелопер/Застройщик'] != 0]
+        pulse = pulse.sort_values(f'Кол-во на {today_month}/{today_year}', ascending=False)
+        pulse = pulse.reset_index()
 
-    pulse['Изменение (кол-во)'] = pd.Series((pulse[pulse.columns[-3]] / pulse[pulse.columns[-4]] - 1) * 100).round(2)
-    pulse['Изменение (кол-во)'].fillna(0, inplace=True)
-    pulse['Изменение (кол-во)'] = pulse['Изменение (кол-во)'].apply(lambda x: f"{x}%")
+        pulse['Изменение (кол-во)'] = pd.Series((pulse[pulse.columns[-3]] / pulse[pulse.columns[-4]] - 1) * 100).round(2)
+        pulse['Изменение (кол-во)'].fillna(0, inplace=True)
+        pulse['Изменение (кол-во)'] = pulse['Изменение (кол-во)'].apply(lambda x: f"{x}%")
 
-    pulse['Изменение (стоимость м²)'] = pd.Series(
-        (pulse[pulse.columns[-2]] / pulse[pulse.columns[-3]] - 1) * 100).round(2)
-    pulse['Изменение (стоимость м²)'].fillna(0, inplace=True)
-    pulse['Изменение (стоимость м²)'] = pulse['Изменение (стоимость м²)'].apply(lambda x: f"{x}%")
+        pulse['Изменение (стоимость м²)'] = pd.Series(
+            (pulse[pulse.columns[-2]] / pulse[pulse.columns[-3]] - 1) * 100).round(2)
+        pulse['Изменение (стоимость м²)'].fillna(0, inplace=True)
+        pulse['Изменение (стоимость м²)'] = pulse['Изменение (стоимость м²)'].apply(lambda x: f"{x}%")
 
-    pulse = pulse[['Проект', 'Девелопер/Застройщик', 'Класс', 'Район', f'Кол-во на {today_month - 1}/{today_year}',
-                   f'Кол-во на {today_month}/{today_year}', 'Изменение (кол-во)', f'Стоимость м² на {today_month - 1}/{today_year}, тыс. руб',
-                   f'Стоимость м² на {today_month}/{today_year}, тыс. руб', 'Изменение (стоимость м²)']]
+        pulse = pulse[['Проект', 'Девелопер/Застройщик', 'Класс', 'Район', f'Кол-во на {prev_month}/{prev_year}',
+                       f'Кол-во на {today_month}/{today_year}', 'Изменение (кол-во)', f'Стоимость м² на {prev_month}/{prev_year}, тыс. руб',
+                       f'Стоимость м² на {today_month}/{today_year}, тыс. руб', 'Изменение (стоимость м²)']]
 
-    pulse = pulse.set_index(np.arange(1, pulse.shape[0] + 1))
-    #st.table(pulse.set_index(np.arange(1, pulse.shape[0] + 1)))
-    pulse = pulse.applymap(str)
-    pulse[['Изменение (стоимость м²)', 'Изменение (кол-во)']] = pulse[['Изменение (стоимость м²)', 'Изменение (кол-во)']].replace('inf%', '?%')
-    col1, col2 = st.columns(2)
-    with col1:
-        df_vis = pd.DataFrame(pulse.groupby(by='Район')[f'Кол-во на {today_month}/{today_year}'].count())
-        df_vis = df_vis.sort_values(by=f'Кол-во на {today_month}/{today_year}')
-        fig = px.bar(df_vis, x=f'Кол-во на {today_month}/{today_year}',
-                     y=df_vis.index,
-                     title=f'Распределение продаж по районам города<br><sup>{today_month}/{today_year}</sup>',
-                     template='seaborn',
-                     labels={f'Кол-во на {today_month}/{today_year}': 'Количество юнитов', 'Район': 'Район'})
-        st.plotly_chart(fig)
-    with col2:
-        df_vis = pd.DataFrame(pulse.groupby(by='Класс')[f'Кол-во на {today_month}/{today_year}'].count())
-        df_vis = df_vis.sort_values(by=f'Кол-во на {today_month}/{today_year}')
-        fig = px.bar(df_vis, x=f'Кол-во на {today_month}/{today_year}',
-                     y=df_vis.index,
-                     title=f'Распределение продаж по классам<br><sup>{today_month}/{today_year}</sup>',
-                     template='seaborn',
-                     labels={f'Кол-во на {today_month}/{today_year}': 'Количество юнитов', 'Класс': 'Класс'})
-        st.plotly_chart(fig)
-    st.table(pulse.style.apply(color_price_m2).apply(color_number).apply(color_element, axis=1))
+        pulse = pulse.set_index(np.arange(1, pulse.shape[0] + 1))
+        #st.table(pulse.set_index(np.arange(1, pulse.shape[0] + 1)))
+        pulse = pulse.applymap(str)
+        pulse[['Изменение (стоимость м²)', 'Изменение (кол-во)']] = pulse[['Изменение (стоимость м²)', 'Изменение (кол-во)']].replace('inf%', '?%')
 
+        col1, col2 = st.columns(2)
+        with col1:
+            df_vis = pd.DataFrame(pulse.groupby(by='Район')[f'Кол-во на {today_month}/{today_year}'].count())
+            df_vis = df_vis.sort_values(by=f'Кол-во на {today_month}/{today_year}')
+            fig = px.bar(df_vis, x=f'Кол-во на {today_month}/{today_year}',
+                         y=df_vis.index,
+                         title=f'Распределение продаж по районам города<br><sup>{today_month}/{today_year}</sup>',
+                         template='seaborn',
+                         labels={f'Кол-во на {today_month}/{today_year}': 'Количество юнитов', 'Район': 'Район'})
+            st.plotly_chart(fig)
+        with col2:
+            df_vis = pd.DataFrame(pulse.groupby(by='Класс')[f'Кол-во на {today_month}/{today_year}'].count())
+            df_vis = df_vis.sort_values(by=f'Кол-во на {today_month}/{today_year}')
+            fig = px.bar(df_vis, x=f'Кол-во на {today_month}/{today_year}',
+                         y=df_vis.index,
+                         title=f'Распределение продаж по классам<br><sup>{today_month}/{today_year}</sup>',
+                         template='seaborn',
+                         labels={f'Кол-во на {today_month}/{today_year}': 'Количество юнитов', 'Класс': 'Класс'})
+            st.plotly_chart(fig)
+        st.table(pulse.style.apply(color_price_m2).apply(color_number).apply(color_number_result).apply(color_price_m2_result).apply(color_element, axis=1))
+    except KeyError:
+        st.subheader(":gear: Нет возможности собрать данные")
 
 
 
