@@ -94,10 +94,6 @@ def load_help():
 
 
 
-
-
-
-
 # ОПРЕДЕЛЕНИЕ ВТОРОСТЕПЕННЫХ ФУНКЦИЙ
 # ПУСТАЯ ТАБЛИЦА
 @st.cache_data
@@ -106,6 +102,7 @@ def get_dummy_df():
     dummy_df['Общий итог'] = ['']
     dummy_df.loc['Итог по месяцам'] = ['']
     return dummy_df
+
 
 
 # ВЫДЕЛЕНИЕ ПОСЛЕДНЕГО СТОЛБЦА И ПРЕДПОСЛЕДНЕЙ СТРОКИ ТАБЛИЦЫ
@@ -580,17 +577,61 @@ if option == 'Анализ спроса':
                 with col1:
                     st.write('<h5> 1️⃣ Количество зарегистрированных ДДУ, шт.</h5>', unsafe_allow_html=True)
                     st.write(get_ddu(project).replace(0, np.nan).style.format(precision=0).apply(highlight_last_row_and_column).applymap(color_negative_red, subset=pd.IndexSlice[get_ddu(project).index[-1], :]))
+                    df_ddu = get_ddu(project).replace(0, np.nan)
+                    with st.expander('**Развернуть график**'):
+                        if len(df_ddu.columns[:-1]) >= 2:
+                            fig_ddu = px.line(x=list(map(str, df_ddu.iloc[df_ddu.shape[0] - 2][:-1].index)),
+                                                  y=df_ddu.iloc[df_ddu.shape[0] - 2][:-1],
+                                                  labels={'x': 'Временной период', 'y': 'Количество зарегистриорванных ДДУ, шт.'},
+                                                  title=f'Динамика количества зарегистрированных ДДУ, шт. <br>{list(map(str, df_ddu.iloc[df_ddu.shape[0] - 2][1:-1].index))[0]} - {list(map(str, df_ddu.iloc[df_ddu.shape[0] - 2][1:-1].index))[-1]}',
+                                                  template='presentation')
+                            fig_ddu.update_traces(mode='markers+lines+text', text=["{:.0f}".format(x) for x in list(map(float, df_ddu.iloc[df_ddu.shape[0] - 2][:-1]))],
+                                                       textposition='top center', textfont=dict(size=13, color='black'))
+                            st.plotly_chart(fig_ddu)
                     st.markdown("&nbsp;")
                 with col2:
                     st.write('<h5> 2️⃣ Средняя площадь, м²</h5>', unsafe_allow_html=True)
                     st.write(get_mean_square(project).replace(0, np.nan).style.format(precision=1).apply(highlight_last_row_and_column).applymap(color_negative_red, subset=pd.IndexSlice[get_ddu(project).index[-1], :]))
+                    df_mean_square = get_mean_square(project).replace(0, np.nan)
+                    with st.expander('**Развернуть график**'):
+                        if len(df_mean_square[:-1]) >= 2:
+                            fig_mean_square = px.line(x=list(map(str, df_mean_square.iloc[df_mean_square.shape[0] - 2][:-1].index)),
+                                                  y=df_mean_square.iloc[df_mean_square.shape[0] - 2][:-1],
+                                                  labels={'x': 'Временной период', 'y': 'Средняя площадь, м²'},
+                                                  title=f'Динамика средней площади, м² <br>{list(map(str, df_mean_square.iloc[df_mean_square.shape[0] - 2][1:-1].index))[0]} - {list(map(str, df_mean_square.iloc[df_mean_square.shape[0] - 2][1:-1].index))[-1]}',
+                                                  template='presentation')
+                            fig_mean_square.update_traces(mode='markers+lines+text', text=["{:.1f}".format(x) for x in list(map(float, df_mean_square.iloc[df_mean_square.shape[0] - 2][:-1]))],
+                                                       textposition='top center', textfont=dict(size=13, color='black'))
+                            st.plotly_chart(fig_mean_square)
                     st.markdown("&nbsp;")
                 with col1:
                     st.write('<h5> 3️⃣ Средняя стоимость м², тыс. руб.</h5>', unsafe_allow_html=True)
                     st.write(get_mean_m2(project).replace(0, np.nan).style.format(precision=0).apply(highlight_last_row_and_column).applymap(color_negative_red, subset=pd.IndexSlice[get_ddu(project).index[-1], :]))
+                    df_mean_m2 = get_mean_m2(project).replace(0, np.nan)
+                    with st.expander('**Развернуть график**'):
+                        if len(df_mean_m2.columns[:-1]) >= 2:
+                            fig_mean_m2 = px.line(x=list(map(str, df_mean_m2.iloc[df_mean_m2.shape[0] - 2][:-1].index)),
+                                                  y=df_mean_m2.iloc[df_mean_m2.shape[0] - 2][:-1],
+                                                  labels={'x': 'Временной период', 'y': 'Средняя стоимость м², тыс. руб.'},
+                                                  title=f'Динамика средней стоимости м², тыс. руб. <br>{list(map(str, df_mean_m2.iloc[df_mean_m2.shape[0] - 2][1:-1].index))[0]} - {list(map(str, df_mean_m2.iloc[df_mean_m2.shape[0] - 2][1:-1].index))[-1]}',
+                                                  template='presentation')
+                            fig_mean_m2.update_traces(mode='markers+lines+text', text=["{:.0f}".format(x) for x in list(map(float, df_mean_m2.iloc[df_mean_m2.shape[0] - 2][:-1]))],
+                                                       textposition='top center', textfont=dict(size=13, color='black'))
+                            st.plotly_chart(fig_mean_m2)
                 with col2:
                     st.write('<h5> 4️⃣ Средняя стоимость одного лота, млн руб.</h5>', unsafe_allow_html=True)
                     st.write(get_mean_lot(project).replace(0, np.nan).style.format(precision=1).apply(highlight_last_row_and_column).applymap(color_negative_red, subset=pd.IndexSlice[get_ddu(project).index[-1], :]))
+                    df_mean_lot = get_mean_lot(project).replace(0, np.nan)
+                    if len(df_mean_lot.columns[:-1]) >= 2:
+                        with st.expander('**Развернуть график**'):
+                            fig_mean_lot = px.line(x=list(map(str, df_mean_lot.iloc[df_mean_lot.shape[0] - 2][:-1].index)),
+                                              y=df_mean_lot.iloc[df_mean_lot.shape[0] - 2][:-1],
+                                              labels={'x': 'Временной период', 'y': 'Средняя стоимость лота, млн руб.'},
+                                              title=f'Динамика средней стоимости одного лота «{project}»<br>{list(map(str, df_mean_lot.iloc[df_mean_lot.shape[0] - 2][1:-1].index))[0]} - {list(map(str, df_mean_lot.iloc[df_mean_lot.shape[0] - 2][1:-1].index))[-1]}',
+                                              template='presentation')
+                            fig_mean_lot.update_traces(mode='markers+lines+text', text=["{:.1f}".format(x) for x in list(map(float, df_mean_lot.iloc[df_mean_lot.shape[0] - 2][:-1]))],
+                                                       textposition='top center', textfont=dict(size=13, color='black'))
+                            st.plotly_chart(fig_mean_lot)
                 st.markdown("&nbsp;")
                 st.markdown('---')
 
