@@ -22,7 +22,7 @@ st.markdown('<style>div.block-container{padding-top:1rem;}</style>', unsafe_allo
 # REALTY_SOLD SPB
 @st.cache_data()
 def load_realty_sold_spb():
-    df = pd.read_pickle('realty_sold_06082024_SPB_LO.gz')
+    df = pd.read_pickle('new_history_02082024_SPB_LO.gz')
     df = df[(df['Купил лотов в ЖК'].isin(np.arange(1, 6))) & (df['Покупатель ЮЛ'].isna())]  # лотов [1;5] + ЮЛ - NaN
     df = df.rename(columns={"ЖК рус": "ЖК_рус"})
     df = df.replace('Шипилевский', 'Шепилевский')  # переименуем на "Шепилевский"
@@ -37,7 +37,7 @@ def load_realty_sold_spb():
 def load_new_history_spb():
     df1 = pd.read_pickle('new_history_02082024_SPB_LO.gz')
     df1 = df1.rename(columns={"ЖК рус": "ЖК_рус"})
-    df1['Дата актуализации'] = pd.to_datetime(df1['Дата актуализации'])
+    #df1['Дата актуализации'] = pd.to_datetime(df1['Дата актуализации'])
     df1 = df1.replace('Шипилевский', 'Шепилевский')
     df1['Комнат'].dropna(inplace=True)
     df1['ЖК_рус'] = df1['ЖК_рус'].str.strip()
@@ -749,10 +749,10 @@ if option == 'Анализ предложения':
 
             st.markdown("&nbsp;")
 
-            download = st.button('Загрузить в формате .xlsx',
-                                 help=f'Таблица составлена за период с {str(df1["Дата актуализации"].min())[:-9]} по {str(df1["Дата актуализации"].max())[:-9]}')
-            if download:
-                download_dataframe_xlsx(final_exp)
+            #download = st.button('Загрузить в формате .xlsx',
+                                 #help=f'Таблица составлена за период с {str(df1["Дата актуализации"].min())[:-9]} по {str(df1["Дата актуализации"].max())[:-9]}')
+            #if download:
+            #    download_dataframe_xlsx(final_exp)
 
 
 if option == 'Анализ условий покупки':
