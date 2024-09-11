@@ -22,7 +22,7 @@ st.markdown('<style>div.block-container{padding-top:1rem;}</style>', unsafe_allo
 # REALTY_SOLD SPB
 @st.cache_data()
 def load_realty_sold_spb():
-    df = pd.read_pickle('realty_sold_06082024_SPB_LO.gz')
+    df = pd.read_pickle('realty_sold_06092024_SPB_LO.gz')
     df = df[(df['Купил лотов в ЖК'].isin(np.arange(1, 6))) & (df['Покупатель ЮЛ'].isna())]  # лотов [1;5] + ЮЛ - NaN
     df = df.rename(columns={"ЖК рус": "ЖК_рус"})
     df = df.replace('Шипилевский', 'Шепилевский')  # переименуем на "Шепилевский"
@@ -35,7 +35,7 @@ def load_realty_sold_spb():
 # NEW HISTORY SPB
 @st.cache_data()
 def load_new_history_spb():
-    df1 = pd.read_pickle('new_history_02082024_SPB_LO.gz')
+    df1 = pd.read_pickle('new_history_03092024_SPB_LO.gz')
     df1 = df1.rename(columns={"ЖК рус": "ЖК_рус"})
     #df1['Дата актуализации'] = pd.to_datetime(df1['Дата актуализации'])
     df1 = df1.replace('Шипилевский', 'Шепилевский')
@@ -46,7 +46,7 @@ def load_new_history_spb():
 # REALTY_SOLD MOSCOW
 @st.cache_data()
 def load_realty_sold_moscow():
-    df = pd.read_pickle('realty_sold_05082024_M.gz')
+    df = pd.read_pickle('realty_sold_06092024_M_MO_NM.gz')
     df = df[(df['Купил лотов в ЖК'].isin(np.arange(1, 6))) & (df['Покупатель ЮЛ'].isna())]  # лотов [1;5] + ЮЛ - NaN
     df = df.rename(columns={"ЖК рус": "ЖК_рус"})
     df = df[df['Уступка'] == 0]  # уберём уступки
@@ -58,7 +58,7 @@ def load_realty_sold_moscow():
 # NEW HISTORY MOSCOW
 @st.cache_data()
 def load_new_history_moscow():
-    df1 = pd.read_pickle('new_history_02082024_M.gz')
+    df1 = pd.read_pickle('new_history_02092024_M.gz')
     df1 = df1.rename(columns={"ЖК рус": "ЖК_рус"})
     df1['Дата актуализации'] = pd.to_datetime(df1['Дата актуализации'])
     df1['Комнат'].dropna(inplace=True)
